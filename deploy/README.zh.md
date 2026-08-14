@@ -24,11 +24,11 @@ sudo bash deploy/install.sh
 
 `/opt/dsh/env` 一旦存在，`install.sh` 不会覆盖它。改 Host 后执行 `systemctl restart dsh-web`。再次运行 `install.sh` 会按模板覆盖 `/etc/nginx/conf.d/dsh-web.conf`。
 
-随附默认值在 `:80` 上发布 `http://118.145.156.15/`（云安全组已经放行该端口）。`DSH_SERVER_NAME` 同时列出 `dsh.118.145.156.15.sslip.io`。把真实 DNS 指到该虚拟机后，把它加入 `DSH_SERVER_NAME` / `DSH_PUBLIC_HOST` / `DSH_EXTRA_HOSTS`，并重载 nginx 与 `dsh-web`。
+随附默认值在 `:80` 上发布 `http://118.145.156.15/DSH/`（云安全组已经放行该端口）。`DSH_SERVER_NAME` 同时列出 `dsh.118.145.156.15.sslip.io`。把真实 DNS 指到该虚拟机后，把它加入 `DSH_SERVER_NAME` / `DSH_PUBLIC_HOST` / `DSH_EXTRA_HOSTS`，并重载 nginx 与 `dsh-web`。
 
 ## After boot
 
-用浏览器打开 `http://118.145.156.15/`。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。该 IP 上的 `/finance` 与 `/hermes` 仍转到主机上已有的应用。此 IP Host 的 `/` 与 `/api` 归 DSH，因为 Web 客户端需要站点根上的这两个前缀。`:80` 的 HTML 会注入 `crypto.randomUUID` polyfill，已发布 CLI 才能在非安全 HTTP 下运行。
+用浏览器打开 `http://118.145.156.15/DSH/`。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。`http://118.145.156.15/` 仍是流水首页；`/api` 仍是算账；`/finance` 与 `/hermes` 仍是那些应用。官方客户端仍请求站点根上的 `/api`、`/assets`、`/plugins`；`/DSH/` 的 HTML 会改写这些 URL 并补丁 `fetch` / `WebSocket`。同时注入 `crypto.randomUUID` polyfill，已发布 CLI 才能在非安全 HTTP 下运行。
 
 TLS 隧道（cloudflared、Caddy）必须指向 nginx 发布端口（`DSH_PUBLISH_PORT`，默认 `13080`），不要指向 `DSH_BIND_PORT`。隧道直连 `127.0.0.1:3080` 会跳过 Host 改写，设置 → 模型会返回 HTTP 403。
 
@@ -37,5 +37,5 @@ TLS 隧道（cloudflared、Caddy）必须指向 nginx 发布端口（`DSH_PUBLIS
 ## Known Limitations and Deferred Work
 
 - **官方 CLI 仍拒绝 `--host 0.0.0.0`。** 对外发布靠 nginx（或其他反代），不改循环。
-- **本机 80 端口已有其他应用。** 叠加层为公网 IP（及可选名字）增加 `server_name` 虚拟主机，不替换 default_server。未匹配的 Host 仍到流水。在 IP Host 上，`/` 与 `/api` 归 DSH；`/finance` 与 `/hermes` 仍是原应用。专用发布端口给内网或安全组放行后使用。
+- **本机 80 端口已有其他应用。** 叠加层为公网 IP（及可选名字）增加 `server_name` 虚拟主机，不替换 default_server。未匹配的 Host 仍到流水。在 IP Host 上，DSH 只在 `/DSH/`；`/` 与 `/api` 仍是流水/算账。专用发布端口给内网或安全组放行后使用。
 - **这里不终止 TLS。** 需要 HTTPS 时在 nginx 或隧道上挂证书，并把该 Host（443 时不要带端口）写入 `DSH_PUBLIC_HOST` / `DSH_EXTRA_HOSTS`。

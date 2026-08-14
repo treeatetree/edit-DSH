@@ -10,6 +10,7 @@ npm_spec="${DSH_NPM_SPEC:-@deepseek-ai/dsh@0.1.0-rc.6}"
 server_name="${DSH_SERVER_NAME:-dsh.118.145.156.15.sslip.io 118.145.156.15}"
 public_host="${DSH_PUBLIC_HOST:-118.145.156.15}"
 extra_hosts="${DSH_EXTRA_HOSTS:-dsh.118.145.156.15.sslip.io,118.145.156.15:13080}"
+http_path="${DSH_HTTP_PATH:-DSH}"
 
 need_root() {
   if [[ $(id -u) -ne 0 ]]; then
@@ -41,6 +42,7 @@ DSH_PUBLIC_HOST=$public_host
 DSH_EXTRA_HOSTS=$extra_hosts
 DSH_BIND_PORT=$bind_port
 DSH_PUBLISH_PORT=$publish_port
+DSH_HTTP_PATH=$http_path
 DSH_NPM_SPEC=$npm_spec
 DSH_CLI=$prefix/app/node_modules/.bin/dsh
 DSH_TELEMETRY_DISABLED=1
@@ -63,10 +65,15 @@ install_cli() {
 }
 
 install_nginx() {
+  if [[ ! $http_path =~ ^[A-Za-z0-9_-]+$ ]]; then
+    echo "install.sh: DSH_HTTP_PATH must be one path segment (letters, digits, _ or -)" >&2
+    exit 1
+  fi
   local dest=/etc/nginx/conf.d/dsh-web.conf
   sed -e "s/__DSH_PUBLISH_PORT__/$publish_port/g" \
       -e "s/__DSH_BIND_PORT__/$bind_port/g" \
       -e "s/__DSH_SERVER_NAME__/$server_name/g" \
+      -e "s/__DSH_HTTP_PATH__/$http_path/g" \
       "$root/nginx/dsh-web.conf" >"$dest"
   /usr/sbin/nginx -t
   # Prefer a direct HUP of the distro master: systemd reload can fail on
@@ -95,4 +102,4 @@ install_cli
 install_nginx
 install_unit
 systemctl --no-pager --full status dsh-web.service || true
-echo "install.sh: overlay is up. Open http://$server_name (also http://$extra_hosts)."
+echo "install.sh: overlay is up. Open http://$public_host/$http_path/"

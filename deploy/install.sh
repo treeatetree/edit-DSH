@@ -7,9 +7,9 @@ prefix="${DSH_PREFIX:-/opt/dsh}"
 publish_port="${DSH_PUBLISH_PORT:-13080}"
 bind_port="${DSH_BIND_PORT:-3080}"
 npm_spec="${DSH_NPM_SPEC:-@deepseek-ai/dsh@0.1.0-rc.6}"
-server_name="${DSH_SERVER_NAME:-dsh.118.145.156.15.sslip.io}"
-public_host="${DSH_PUBLIC_HOST:-dsh.118.145.156.15.sslip.io}"
-extra_hosts="${DSH_EXTRA_HOSTS:-118.145.156.15:13080}"
+server_name="${DSH_SERVER_NAME:-dsh.118.145.156.15.sslip.io 118.145.156.15}"
+public_host="${DSH_PUBLIC_HOST:-118.145.156.15}"
+extra_hosts="${DSH_EXTRA_HOSTS:-dsh.118.145.156.15.sslip.io,118.145.156.15:13080}"
 
 need_root() {
   if [[ $(id -u) -ne 0 ]]; then
@@ -36,7 +36,7 @@ write_env() {
   fi
   umask 077
   cat >"$env_file" <<EOF
-DSH_SERVER_NAME=$server_name
+DSH_SERVER_NAME="$server_name"
 DSH_PUBLIC_HOST=$public_host
 DSH_EXTRA_HOSTS=$extra_hosts
 DSH_BIND_PORT=$bind_port

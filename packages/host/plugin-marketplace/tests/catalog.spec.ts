@@ -4,17 +4,31 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   defaultCatalogFetcher,
+  githubDiscovery,
   githubHeaders,
+  githubOpenGraphUrl,
+  githubOwnerAvatarUrl,
   loadCatalog,
   marketplacePluginId,
   mergeCatalog,
   parseCommunitySearch,
+  parseOfficialRepo,
   parseOfficialTree,
   parseOwnerRepo,
   readInstalledPlugins,
 } from '../src/catalog.ts'
+import type { MarketplacePlugin } from '../src/types.ts'
 
 const skip = new Set(['boot', 'util'])
+const blankDiscovery = {
+  imageUrl: null,
+  coverUrl: null,
+  owner: null,
+  language: null,
+  updatedAt: null,
+  forks: null,
+  topics: [] as readonly string[],
+} satisfies Pick<MarketplacePlugin, 'imageUrl' | 'coverUrl' | 'owner' | 'language' | 'updatedAt' | 'forks' | 'topics'>
 
 describe('plugin marketplace catalog helpers', () => {
   it('parses owner/repo and rejects extra path segments', () => {
@@ -58,8 +72,74 @@ describe('plugin marketplace catalog helpers', () => {
       packageName: null,
       stars: null,
       group: 'host',
+      imageUrl: 'https://github.com/deepseek-ai.png',
+      coverUrl: null,
+      owner: 'deepseek-ai',
+      language: null,
+      updatedAt: null,
+      forks: null,
+      topics: [],
     }])
-    expect(parseOfficialTree('{}', 'deepseek-ai/deepseek-harness', 'master', skip)).toEqual([])
+    expect(parseOfficialTree('{}', 'not-a-repo', 'master', skip)).toEqual([])
+    expect(parseOfficialTree(JSON.stringify({
+      tree: [{ path: 'packages/host/plugin-inventory/package.json', type: 'blob' }],
+    }), 'not-a-repo', 'master', skip)[0]).toMatchObject({
+      owner: null,
+      imageUrl: null,
+    })
+  })
+
+  it('copies official repository metadata onto every tree row', () => {
+    const entries = parseOfficialTree(JSON.stringify({
+      tree: [{ path: 'packages/host/plugin-inventory/package.json', type: 'blob' }],
+    }), 'deepseek-ai/deepseek-harness', 'master', skip, {
+      owner: 'deepseek-ai',
+      imageUrl: 'https://avatars.example/deepseek.png',
+      stars: 99,
+      language: 'TypeScript',
+      updatedAt: '2026-08-14T00:00:00Z',
+      forks: 3,
+    })
+    expect(entries[0]).toMatchObject({
+      stars: 99,
+      imageUrl: 'https://avatars.example/deepseek.png',
+      language: 'TypeScript',
+      forks: 3,
+      owner: 'deepseek-ai',
+      coverUrl: null,
+    })
+    expect(parseOfficialRepo('not-json', 'deepseek-ai/deepseek-harness')).toBeUndefined()
+    expect(parseOfficialRepo('{}', 'not-a-repo')).toBeUndefined()
+    expect(parseOfficialRepo('{}', 'deepseek-ai/deepseek-harness')).toEqual({
+      owner: 'deepseek-ai',
+      imageUrl: 'https://github.com/deepseek-ai.png',
+      stars: null,
+      language: null,
+      updatedAt: null,
+      forks: null,
+    })
+    expect(parseOfficialRepo(JSON.stringify({
+      owner: { login: 'deepseek-ai', avatar_url: 'https://avatars.example/d.png' },
+      stargazers_count: 7,
+      forks_count: 2,
+      language: 'TypeScript',
+      updated_at: '2026-08-01T00:00:00Z',
+    }), 'deepseek-ai/deepseek-harness')).toEqual({
+      owner: 'deepseek-ai',
+      imageUrl: 'https://avatars.example/d.png',
+      stars: 7,
+      language: 'TypeScript',
+      updatedAt: '2026-08-01T00:00:00Z',
+      forks: 2,
+    })
+    expect(githubOpenGraphUrl('acme/dsh-hello')).toBe('https://opengraph.githubassets.com/1/acme/dsh-hello')
+    expect(githubOwnerAvatarUrl('acme')).toBe('https://github.com/acme.png')
+    expect(githubDiscovery('not a repo')).toEqual({ imageUrl: null, coverUrl: null, owner: null })
+    expect(githubDiscovery('not a repo', 'https://avatars.example/x.png')).toEqual({
+      imageUrl: 'https://avatars.example/x.png',
+      coverUrl: null,
+      owner: null,
+    })
   })
 
   it('maps community search hits and drops incomplete items', () => {
@@ -71,6 +151,11 @@ describe('plugin marketplace catalog helpers', () => {
           description: 'Hello bundle',
           html_url: 'https://github.com/acme/dsh-hello',
           stargazers_count: 12,
+          forks_count: 4,
+          language: 'TypeScript',
+          updated_at: '2026-08-14T12:00:00Z',
+          topics: ['dsh-plugin'],
+          owner: { login: 'acme', avatar_url: 'https://avatars.example/acme.png' },
         },
         { name: 'orphan' },
         { full_name: 'acme/no-url' },
@@ -87,6 +172,13 @@ describe('plugin marketplace catalog helpers', () => {
       origin: 'community',
       installSpec: 'github:acme/dsh-hello',
       stars: 12,
+      forks: 4,
+      language: 'TypeScript',
+      updatedAt: '2026-08-14T12:00:00Z',
+      topics: ['dsh-plugin'],
+      owner: 'acme',
+      imageUrl: 'https://avatars.example/acme.png',
+      coverUrl: 'https://opengraph.githubassets.com/1/acme/dsh-hello',
     })
     expect(entries[1]).toMatchObject({
       title: 'acme/no-desc',
@@ -107,6 +199,7 @@ describe('plugin marketplace catalog helpers', () => {
       packageName: null,
       stars: null,
       group: null,
+      ...blankDiscovery,
     }, {
       id: marketplacePluginId('installed:named'),
       title: 'named',
@@ -117,6 +210,7 @@ describe('plugin marketplace catalog helpers', () => {
       packageName: 'named',
       stars: null,
       group: null,
+      ...blankDiscovery,
     }]
     const community = [{
       id: marketplacePluginId('community:acme/named'),
@@ -128,6 +222,7 @@ describe('plugin marketplace catalog helpers', () => {
       packageName: null,
       stars: null,
       group: null,
+      ...blankDiscovery,
     }, {
       id: marketplacePluginId('installed:dsh-hello'),
       title: 'dup',
@@ -138,6 +233,7 @@ describe('plugin marketplace catalog helpers', () => {
       packageName: null,
       stars: null,
       group: null,
+      ...blankDiscovery,
     }]
     const official = [{
       id: marketplacePluginId('official:host/x'),
@@ -149,6 +245,7 @@ describe('plugin marketplace catalog helpers', () => {
       packageName: null,
       stars: null,
       group: 'host',
+      ...blankDiscovery,
     }]
     expect(mergeCatalog(official, community, installed).map(row => row.id)).toEqual([
       'installed:dsh-hello',
@@ -181,6 +278,10 @@ describe('plugin marketplace catalog helpers', () => {
         origin: 'installed',
         installSpec: 'github:acme/dsh-hello',
         description: 'Active profile bundle',
+        htmlUrl: 'https://github.com/acme/dsh-hello',
+        owner: 'acme',
+        coverUrl: 'https://opengraph.githubassets.com/1/acme/dsh-hello',
+        imageUrl: 'https://github.com/acme.png',
       }),
       expect.objectContaining({
         packageName: 'plain-lib',
@@ -251,6 +352,50 @@ describe('loadCatalog', () => {
     ])
   })
 
+  it('applies official repository metadata from the GitHub repo payload', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dsh-market-'))
+    writeFileSync(join(dir, 'package.json'), '{}')
+    const snapshot = await loadCatalog({
+      officialRepository: 'deepseek-ai/deepseek-harness',
+      githubTopic: 'dsh-plugin',
+      githubApiBaseUrl: 'https://api.example.test',
+      githubRef: 'master',
+      githubUserAgent: 'ua',
+      officialSkipGroups: [],
+      profile: 'web',
+      profileDir: dir,
+    }, async (url) => {
+      if (url.endsWith('/repos/deepseek-ai/deepseek-harness')) {
+        return {
+          ok: true,
+          status: 200,
+          body: JSON.stringify({
+            owner: { login: 'deepseek-ai', avatar_url: 'https://avatars.example/d.png' },
+            stargazers_count: 42,
+            language: 'TypeScript',
+          }),
+        }
+      }
+      if (url.includes('/git/trees/')) {
+        return {
+          ok: true,
+          status: 200,
+          body: JSON.stringify({
+            tree: [{ path: 'packages/host/plugin-inventory/package.json', type: 'blob' }],
+          }),
+        }
+      }
+      return { ok: true, status: 200, body: '{"items":[]}' }
+    }, undefined)
+    expect(snapshot.entries[0]).toMatchObject({
+      id: 'official:host/plugin-inventory',
+      stars: 42,
+      imageUrl: 'https://avatars.example/d.png',
+      language: 'TypeScript',
+      owner: 'deepseek-ai',
+    })
+  })
+
   it('records malformed officialRepository, GitHub HTTP errors, thrown fetches, and empty trees', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'dsh-market-'))
     mkdirSync(dir, { recursive: true })
@@ -303,6 +448,37 @@ describe('loadCatalog', () => {
       return { ok: true, status: 200, body: '{"items":[]}' }
     }, undefined)
     expect(httpOfficial.sources.find(source => source.id === 'official')?.message).toBe('GitHub tree HTTP 500')
+
+    const repoFailed = await loadCatalog({
+      officialRepository: 'deepseek-ai/deepseek-harness',
+      githubTopic: 'dsh-plugin',
+      githubApiBaseUrl: 'https://api.example.test',
+      githubRef: 'master',
+      githubUserAgent: 'ua',
+      officialSkipGroups: [],
+      profile: 'web',
+      profileDir: dir,
+    }, async (url) => {
+      if (url.includes('/git/trees/')) {
+        return {
+          ok: true,
+          status: 200,
+          body: JSON.stringify({
+            tree: [{ path: 'packages/host/plugin-inventory/package.json', type: 'blob' }],
+          }),
+        }
+      }
+      if (url.endsWith('/repos/deepseek-ai/deepseek-harness')) {
+        return { ok: false, status: 404, body: '' }
+      }
+      return { ok: true, status: 200, body: '{"items":[]}' }
+    }, undefined)
+    expect(repoFailed.sources.find(source => source.id === 'official')?.ok).toBe(true)
+    expect(repoFailed.entries[0]).toMatchObject({
+      id: 'official:host/plugin-inventory',
+      stars: null,
+      imageUrl: 'https://github.com/deepseek-ai.png',
+    })
 
     const officialThrownNonError = await loadCatalog({
       officialRepository: 'deepseek-ai/deepseek-harness',

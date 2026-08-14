@@ -8,7 +8,7 @@ Host Remote that assembles a plugin catalog and mutates the running profile thro
 
 Public payload types live under `./types`. Typert generates the Host and Client Remote artifacts exposed by `./typert` and `./remote`. The service is Remote-only and declares no same-process Cordis `Context` merge. Client packages consume it through the [`api-remotes`](../../api/remotes/README.md) assembly.
 
-Every deployment-varying choice is a `Config` field: official repository, GitHub topic, API origin, ref, User-Agent, optional token, skipped official groups, profile name, catalog cache duration, install timeout, and CLI path.
+Every deployment-varying choice is a `Config` field: official repository, GitHub topic, API origin, ref, User-Agent, optional token, skipped official groups, profile name, catalog cache duration, whether to persist the catalog under `$DSH_HOME/plugin-marketplace-catalog.json`, whether to prefetch the catalog at plugin load, install timeout, and CLI path. Community rows include the GitHub search description, stars, forks, language, topics, owner avatar, and Open Graph image URL. Official rows copy repository-level stars, language, and the owner avatar from one extra `/repos/{owner}/{repo}` read.
 
 ## Model Experience
 

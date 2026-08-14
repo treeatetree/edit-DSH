@@ -1,8 +1,9 @@
-/** Copy dictionaries for the plugin marketplace Settings tab. */
+/** Copy dictionaries for the plugin marketplace. */
 
 /** Simplified Chinese dictionary and key source of truth. */
 export const zh = {
   tab: '插件市场',
+  close: '关闭',
   intro: '浏览官方仓库中的插件包，以及 GitHub topic dsh-plugin 上的可安装社区组合包。安装或卸载后需要重启 Web 进程才会生效。',
   loading: '正在读取插件市场…',
   error: '暂时无法读取插件市场。',
@@ -29,6 +30,11 @@ export const zh = {
   restart: '需要重启 Web 进程后才会加载新插件。',
   sourceFailed: '目录来源失败',
   stars: '星标',
+  forks: 'Fork',
+  owner: '所有者',
+  language: '语言',
+  updated: '更新',
+  topics: '主题',
   group: '分组',
   spec: '安装规格',
 } satisfies Record<string, string>
@@ -39,6 +45,7 @@ export type PluginMarketplaceLocaleKey = keyof typeof zh
 /** English dictionary checked against the Chinese key set. */
 export const en = {
   tab: 'Plugin market',
+  close: 'Close',
   intro: 'Browse first-party packages in the official repository and installable community bundles on the GitHub dsh-plugin topic. Installing or removing a bundle takes effect after the Web process restarts.',
   loading: 'Reading the plugin market…',
   error: 'The plugin market is temporarily unavailable.',
@@ -65,6 +72,11 @@ export const en = {
   restart: 'Restart the Web process before the new plugin loads.',
   sourceFailed: 'Catalog source failed',
   stars: 'Stars',
+  forks: 'Forks',
+  owner: 'Owner',
+  language: 'Language',
+  updated: 'Updated',
+  topics: 'Topics',
   group: 'Group',
   spec: 'Install spec',
 } satisfies Record<PluginMarketplaceLocaleKey, string>

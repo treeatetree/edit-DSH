@@ -11,7 +11,7 @@ export const name = 'client-ui-settings-plugin-marketplace-invariant'
 /** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** No runtime invariant: this package owns a Settings contribution over Host RPCs. */
+/** No runtime invariant: this package owns a sidebar trigger and conversation-column cover over Host RPCs. */
 const install: InvariantInstaller = () => {}
 
 /** Register this package's invariant companion. */

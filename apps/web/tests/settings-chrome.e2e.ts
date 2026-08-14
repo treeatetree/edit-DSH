@@ -41,6 +41,32 @@ describe('web e2e: settings modal and General preferences', () => {
     // the client derives from it (the English default has its own spec below).
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     tripwire = watchConsole(page)
+    await page.route('**/api/pluginMarketplace/catalog', async (route) => {
+      const envelope = route.request().postDataJSON() as {
+        rpcId: string
+        payload: Record<string, unknown>
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'server-response',
+          rpcId: envelope.rpcId,
+          result: {
+            ok: true,
+            value: {
+              entries: [],
+              sources: [
+                { id: 'official', ok: true, message: '' },
+                { id: 'community', ok: true, message: '' },
+                { id: 'installed', ok: true, message: '' },
+              ],
+              profile: 'web',
+            },
+          },
+        }),
+      })
+    })
     await page.goto(scaffold.baseUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
   }, 120_000)
@@ -119,36 +145,14 @@ describe('web e2e: settings modal and General preferences', () => {
       scaffold.workspaceCwd,
     )
     await compareOrRefreshGolden(PLUGINS_EXPECTED, pluginsSnapshot, MODE)
-    await page.route('**/api/pluginMarketplace/catalog', async (route) => {
-      const envelope = route.request().postDataJSON() as {
-        rpcId: string
-        payload: Record<string, unknown>
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          type: 'server-response',
-          rpcId: envelope.rpcId,
-          result: {
-            ok: true,
-            value: {
-              entries: [],
-              sources: [
-                { id: 'official', ok: true, message: '' },
-                { id: 'community', ok: true, message: '' },
-                { id: 'installed', ok: true, message: '' },
-              ],
-              profile: 'web',
-            },
-          },
-        }),
-      })
-    })
-    await dialog.getByRole('tab', { name: '插件市场', exact: true }).click()
-    const marketplaceChrome = dialog.locator('[data-marketplace-chrome]')
+    await page.keyboard.press('Escape')
+    await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
+    await page.getByRole('button', { name: '插件市场', exact: true }).click()
+    const marketplacePanel = page.locator('[data-marketplace-panel]')
+    await marketplacePanel.waitFor({ timeout: 10_000 })
+    expect(await marketplacePanel.getAttribute('data-open')).toBe('true')
+    const marketplaceChrome = page.locator('[data-marketplace-chrome]')
     await marketplaceChrome.waitFor({ timeout: 10_000 })
-    expect(await dialog.getByRole('tab', { name: '插件市场', exact: true }).getAttribute('aria-selected')).toBe('true')
     expect(await marketplaceChrome.getByRole('searchbox', { name: '搜索插件' }).count()).toBe(1)
     const marketplaceSnapshot = await captureStableAria(
       page,
@@ -156,10 +160,8 @@ describe('web e2e: settings modal and General preferences', () => {
       scaffold.workspaceCwd,
     )
     await compareOrRefreshGolden(MARKETPLACE_EXPECTED, marketplaceSnapshot, MODE)
-    await page.unroute('**/api/pluginMarketplace/catalog')
-    // Close path 1: Escape.
     await page.keyboard.press('Escape')
-    await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
+    await expect.poll(() => marketplacePanel.getAttribute('data-open'), { timeout: 5_000 }).toBeNull()
     expect(await trigger.getAttribute('aria-expanded')).toBe('false')
     // Close path 2: the header close button (focus lands there on open).
     await trigger.click()

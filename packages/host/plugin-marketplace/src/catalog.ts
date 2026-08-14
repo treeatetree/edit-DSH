@@ -45,7 +45,21 @@ interface GitHubSearchResponse {
     readonly description?: string | null
     readonly html_url?: string
     readonly stargazers_count?: number
+    readonly forks_count?: number
+    readonly language?: string | null
+    readonly updated_at?: string
+    readonly topics?: readonly string[]
+    readonly owner?: { readonly login?: string; readonly avatar_url?: string }
   }[]
+}
+
+/** GitHub repository payload used for official-row avatars and counts. */
+interface GitHubRepoResponse {
+  readonly owner?: { readonly login?: string; readonly avatar_url?: string }
+  readonly stargazers_count?: number
+  readonly forks_count?: number
+  readonly language?: string | null
+  readonly updated_at?: string
 }
 
 /** Profile package.json slice the marketplace reads. */
@@ -54,7 +68,18 @@ interface ProfilePackageJson {
   readonly dsh?: { readonly profile?: { readonly bundles?: readonly string[] } }
 }
 
+/** Repository facts copied onto every official tree row. */
+export interface OfficialRepoMeta {
+  readonly owner: string
+  readonly imageUrl: string | null
+  readonly stars: number | null
+  readonly language: string | null
+  readonly updatedAt: string | null
+  readonly forks: number | null
+}
+
 const PACKAGE_JSON_PATH = /^packages\/([^/]+)\/([^/]+)\/package\.json$/
+const GITHUB_SPEC = /^github:([^#/]+\/[^#/]+)/
 
 /**
  * Brand a catalog row id at this package's boundary.
@@ -74,6 +99,24 @@ export function parseOwnerRepo(value: string): { owner: string; repo: string } |
   const match = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/.exec(value)
   if (match === null || match[1] === undefined || match[2] === undefined) return undefined
   return { owner: match[1], repo: match[2] }
+}
+
+/**
+ * GitHub Open Graph image for a repository, no extra API request.
+ * @param ownerRepo - `owner/repo`.
+ * @returns the Open Graph image URL GitHub hosts for that repository.
+ */
+export function githubOpenGraphUrl(ownerRepo: string): string {
+  return `https://opengraph.githubassets.com/1/${ownerRepo}`
+}
+
+/**
+ * GitHub identicon/avatar for an owner, no extra API request.
+ * @param owner - GitHub login.
+ * @returns the PNG avatar URL GitHub hosts for that owner.
+ */
+export function githubOwnerAvatarUrl(owner: string): string {
+  return `https://github.com/${owner}.png`
 }
 
 /**
@@ -106,6 +149,42 @@ export async function defaultCatalogFetcher(
   return { ok: response.ok, status: response.status, body: await response.text() }
 }
 
+function emptyDiscovery(): Pick<
+  MarketplacePlugin,
+  'imageUrl' | 'coverUrl' | 'owner' | 'language' | 'updatedAt' | 'forks' | 'topics'
+> {
+  return {
+    imageUrl: null,
+    coverUrl: null,
+    owner: null,
+    language: null,
+    updatedAt: null,
+    forks: null,
+    topics: [],
+  }
+}
+
+/**
+ * Map a GitHub `owner/repo` into avatar and cover URLs.
+ * @param ownerRepo - `owner/repo`.
+ * @param avatarUrl - search/repo avatar when GitHub already supplied one.
+ * @returns owner login plus image URLs.
+ */
+export function githubDiscovery(
+  ownerRepo: string,
+  avatarUrl?: string | undefined,
+): Pick<MarketplacePlugin, 'imageUrl' | 'coverUrl' | 'owner'> {
+  const parsed = parseOwnerRepo(ownerRepo)
+  if (parsed === undefined) {
+    return { imageUrl: avatarUrl ?? null, coverUrl: null, owner: null }
+  }
+  return {
+    imageUrl: avatarUrl ?? githubOwnerAvatarUrl(parsed.owner),
+    coverUrl: githubOpenGraphUrl(ownerRepo),
+    owner: parsed.owner,
+  }
+}
+
 /**
  * Read profile dependencies; missing or invalid manifests yield an empty installed source.
  * @param profileDir - `$DSH_HOME/profiles/<profile>`.
@@ -133,16 +212,22 @@ export function readInstalledPlugins(profileDir: string): {
   const bundles = new Set(manifest.dsh?.profile?.bundles ?? [])
   const entries: MarketplacePlugin[] = []
   for (const [packageName, spec] of Object.entries(dependencies)) {
+    const github = GITHUB_SPEC.exec(spec)
+    const discovery = github?.[1] === undefined ? emptyDiscovery() : {
+      ...emptyDiscovery(),
+      ...githubDiscovery(github[1]),
+    }
     entries.push({
       id: marketplacePluginId(`installed:${packageName}`),
       title: packageName,
       description: bundles.has(packageName) ? 'Active profile bundle' : 'Profile dependency',
       origin: 'installed',
-      htmlUrl: '',
+      htmlUrl: github?.[1] === undefined ? '' : `https://github.com/${github[1]}`,
       installSpec: spec.startsWith('github:') ? spec : packageName,
       packageName,
       stars: null,
       group: null,
+      ...discovery,
     })
   }
   return { entries, source: { id: 'installed', ok: true, message: '' } }
@@ -154,6 +239,7 @@ export function readInstalledPlugins(profileDir: string): {
  * @param repository - `owner/repo`.
  * @param ref - git ref used in blob URLs.
  * @param skipGroups - package groups omitted from the official catalog.
+ * @param meta - repository-level avatar and counts shared by every official row.
  * @returns browse-only official rows (`installSpec` is null).
  */
 export function parseOfficialTree(
@@ -161,8 +247,10 @@ export function parseOfficialTree(
   repository: string,
   ref: string,
   skipGroups: ReadonlySet<string>,
+  meta: OfficialRepoMeta | undefined = undefined,
 ): MarketplacePlugin[] {
   const parsed = JSON.parse(body) as GitHubTreeResponse
+  const owner = meta?.owner ?? parseOwnerRepo(repository)?.owner ?? null
   const entries: MarketplacePlugin[] = []
   for (const node of parsed.tree ?? []) {
     if (node.type !== 'blob' || node.path === undefined) continue
@@ -179,11 +267,43 @@ export function parseOfficialTree(
       htmlUrl: `https://github.com/${repository}/tree/${ref}/packages/${group}/${pkg}`,
       installSpec: null,
       packageName: null,
-      stars: null,
+      stars: meta?.stars ?? null,
       group,
+      imageUrl: meta?.imageUrl ?? (owner === null ? null : githubOwnerAvatarUrl(owner)),
+      coverUrl: null,
+      owner,
+      language: meta?.language ?? null,
+      updatedAt: meta?.updatedAt ?? null,
+      forks: meta?.forks ?? null,
+      topics: [],
     })
   }
   return entries
+}
+
+/**
+ * Map a GitHub repository JSON body into official-row metadata.
+ * @param body - GitHub `/repos/{owner}/{repo}` JSON.
+ * @param repository - `owner/repo` used when the payload omits the owner login.
+ * @returns avatar and counts, or `undefined` when the body is not JSON.
+ */
+export function parseOfficialRepo(body: string, repository: string): OfficialRepoMeta | undefined {
+  let parsed: GitHubRepoResponse
+  try {
+    parsed = JSON.parse(body) as GitHubRepoResponse
+  } catch {
+    return undefined
+  }
+  const owner = parsed.owner?.login ?? parseOwnerRepo(repository)?.owner
+  if (owner === undefined) return undefined
+  return {
+    owner,
+    imageUrl: parsed.owner?.avatar_url ?? githubOwnerAvatarUrl(owner),
+    stars: parsed.stargazers_count ?? null,
+    language: parsed.language ?? null,
+    updatedAt: parsed.updated_at ?? null,
+    forks: parsed.forks_count ?? null,
+  }
 }
 
 /**
@@ -197,6 +317,7 @@ export function parseCommunitySearch(body: string): MarketplacePlugin[] {
   for (const item of parsed.items ?? []) {
     if (item.full_name === undefined || item.html_url === undefined) continue
     const title = item.name ?? item.full_name
+    const discovery = githubDiscovery(item.full_name, item.owner?.avatar_url)
     entries.push({
       id: marketplacePluginId(`community:${item.full_name}`),
       title,
@@ -207,6 +328,11 @@ export function parseCommunitySearch(body: string): MarketplacePlugin[] {
       packageName: null,
       stars: item.stargazers_count ?? null,
       group: null,
+      language: item.language ?? null,
+      updatedAt: item.updated_at ?? null,
+      forks: item.forks_count ?? null,
+      topics: item.topics ?? [],
+      ...discovery,
     })
   }
   return entries
@@ -240,6 +366,23 @@ export function mergeCatalog(
   return entries
 }
 
+async function fetchSource(
+  fetcher: CatalogFetcher,
+  url: string,
+  headers: Readonly<Record<string, string>>,
+  id: 'official' | 'community',
+  networkLabel: string,
+): Promise<{ readonly ok: true; readonly body: string } | { readonly ok: false; readonly message: string }> {
+  try {
+    const response = await fetcher(url, headers)
+    if (!response.ok) return { ok: false, message: `${networkLabel} HTTP ${String(response.status)}` }
+    return { ok: true, body: response.body }
+  } catch (error) {
+    const fallback = id === 'official' ? 'official catalog request failed' : 'community catalog request failed'
+    return { ok: false, message: error instanceof Error ? error.message : fallback }
+  }
+}
+
 /**
  * Fetch official + community catalogs and merge with the profile lock.
  * @param request - Config-derived locations.
@@ -260,40 +403,44 @@ export async function loadCatalog(
   let community: MarketplacePlugin[] = []
 
   const ownerRepo = parseOwnerRepo(request.officialRepository)
-  if (ownerRepo === undefined) {
+  const treeUrl = ownerRepo === undefined
+    ? undefined
+    : `${request.githubApiBaseUrl}/repos/${ownerRepo.owner}/${ownerRepo.repo}/git/trees/${request.githubRef}?recursive=1`
+  const repoUrl = ownerRepo === undefined
+    ? undefined
+    : `${request.githubApiBaseUrl}/repos/${ownerRepo.owner}/${ownerRepo.repo}`
+  const searchUrl = `${request.githubApiBaseUrl}/search/repositories?q=topic:${encodeURIComponent(request.githubTopic)}&sort=stars&order=desc&per_page=100`
+
+  const treeTask = treeUrl === undefined
+    ? Promise.resolve(undefined)
+    : fetchSource(fetcher, treeUrl, headers, 'official', 'GitHub tree')
+  const repoTask = repoUrl === undefined
+    ? Promise.resolve(undefined)
+    : fetchSource(fetcher, repoUrl, headers, 'official', 'GitHub repository')
+  const searchTask = fetchSource(fetcher, searchUrl, headers, 'community', 'GitHub search')
+  const [treeResult, repoResult, searchResult] = await Promise.all([treeTask, repoTask, searchTask])
+
+  if (treeResult === undefined || repoResult === undefined) {
     sources.push({
       id: 'official',
       ok: false,
       message: `officialRepository must be owner/repo, got ${JSON.stringify(request.officialRepository)}`,
     })
+  } else if (!treeResult.ok) {
+    sources.push({ id: 'official', ok: false, message: treeResult.message })
   } else {
-    const treeUrl = `${request.githubApiBaseUrl}/repos/${ownerRepo.owner}/${ownerRepo.repo}/git/trees/${request.githubRef}?recursive=1`
-    try {
-      const response = await fetcher(treeUrl, headers)
-      if (!response.ok) {
-        sources.push({ id: 'official', ok: false, message: `GitHub tree HTTP ${String(response.status)}` })
-      } else {
-        official = parseOfficialTree(response.body, request.officialRepository, request.githubRef, skip)
-        sources.push({ id: 'official', ok: true, message: '' })
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'official catalog request failed'
-      sources.push({ id: 'official', ok: false, message })
-    }
+    const meta = repoResult.ok
+      ? parseOfficialRepo(repoResult.body, request.officialRepository)
+      : undefined
+    official = parseOfficialTree(treeResult.body, request.officialRepository, request.githubRef, skip, meta)
+    sources.push({ id: 'official', ok: true, message: '' })
   }
 
-  const searchUrl = `${request.githubApiBaseUrl}/search/repositories?q=topic:${encodeURIComponent(request.githubTopic)}&sort=stars&order=desc&per_page=100`
-  try {
-    const response = await fetcher(searchUrl, headers)
-    if (!response.ok) {
-      sources.push({ id: 'community', ok: false, message: `GitHub search HTTP ${String(response.status)}` })
-    } else {
-      community = parseCommunitySearch(response.body)
-      sources.push({ id: 'community', ok: true, message: '' })
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'community catalog request failed'
-    sources.push({ id: 'community', ok: false, message })
+  if (!searchResult.ok) {
+    sources.push({ id: 'community', ok: false, message: searchResult.message })
+  } else {
+    community = parseCommunitySearch(searchResult.body)
+    sources.push({ id: 'community', ok: true, message: '' })
   }
 
   return {

@@ -7,8 +7,9 @@ import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply, inject, NS } from '../src/client/index.ts'
-import { PluginMarketplaceSettingsTab } from '../src/client/PluginMarketplaceSettingsTab.tsx'
-import type { PluginMarketplaceSettingsTabInjected } from '../src/client/PluginMarketplaceSettingsTab.tsx'
+import { PluginMarketplacePanel } from '../src/client/PluginMarketplacePanel.tsx'
+import { PluginMarketplaceTrigger } from '../src/client/PluginMarketplaceTrigger.tsx'
+import type { PluginMarketplacePanelInjected } from '../src/client/PluginMarketplacePanel.tsx'
 
 usePinnedBrowserLanguages('zh-CN')
 afterEach(cleanup)
@@ -18,7 +19,15 @@ type CatalogResult =
   | { readonly ok: true; readonly value: typeof EMPTY }
   | { readonly ok: false; readonly error: { readonly code: string; readonly message: string } }
 type MutationResult =
-  | { readonly ok: true; readonly value: { readonly ok: true; readonly stdout: string; readonly stderr: string; readonly restartRequired: true } }
+  | {
+    readonly ok: true
+    readonly value: {
+      readonly ok: true
+      readonly stdout: string
+      readonly stderr: string
+      readonly restartRequired: true
+    }
+  }
   | { readonly ok: false; readonly error: { readonly code: string; readonly message: string } }
 
 async function bench() {
@@ -51,33 +60,49 @@ async function bench() {
 function declare(slots: SlotRegistry): () => void {
   return slots.register({
     name: 'root',
-    children: { 'settings.plugins.tab': { kind: 'list', scope: 'root' } },
+    children: {
+      'sidebar.footer.action': { kind: 'list', scope: 'root' },
+      'center.cover': { kind: 'list', scope: 'root' },
+    },
   } as never, () => null)
 }
 
 describe('ui-settings-plugin-marketplace browser plugin', () => {
-  it('declares only the services used by the Settings Remote contribution', () => {
+  it('declares only the services used by the sidebar and cover contributions', () => {
     expect(inject).toEqual(['slots', 'locale', 'remote', 'remote.pluginMarketplace'])
   })
 
-  it('registers a localized tab without reading the Remote eagerly', async () => {
+  it('registers the trigger and cover and prefetches the catalog', async () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
 
-    const entry = b.slots.entries('settings.plugins.tab')[0]!
-    expect(entry.component).toBe(PluginMarketplaceSettingsTab)
-    expect(entry.options).toMatchObject({ id: 'marketplace', order: 5 })
-    expect(entry.locale).toBe(NS)
-    expect(resolveSlotLabel(entry.options.label)).toBe('插件市场')
-    expect(b.catalog).not.toHaveBeenCalled()
+    const trigger = b.slots.entries('sidebar.footer.action')[0]!
+    expect(trigger.component).toBe(PluginMarketplaceTrigger)
+    expect(trigger.options).toMatchObject({ id: 'plugin-marketplace', order: -10 })
+    expect(trigger.locale).toBe(NS)
+    expect(resolveSlotLabel(trigger.options.label)).toBe('插件市场')
 
-    const injected = (entry.inject as unknown as () => PluginMarketplaceSettingsTabInjected)()
+    const cover = b.slots.entries('center.cover')[0]!
+    expect(cover.component).toBe(PluginMarketplacePanel)
+    expect(cover.options).toMatchObject({ id: 'plugin-marketplace' })
+
+    await vi.waitFor(() => { expect(b.catalog).toHaveBeenCalled() })
+
+    const injected = (trigger.inject as unknown as () => PluginMarketplacePanelInjected)()
+    await vi.waitFor(() => { expect(injected.lastCatalog?.()).toEqual(EMPTY) })
     await expect(injected.catalog()).resolves.toEqual(EMPTY)
-    expect(b.catalog).toHaveBeenCalledOnce()
+    expect(injected.lastCatalog?.()).toEqual(EMPTY)
+    expect(injected.view.getSnapshot()).toBe(false)
+    injected.view.open()
+    expect(injected.view.getSnapshot()).toBe(true)
+    injected.view.close()
+    expect(injected.view.getSnapshot()).toBe(false)
     await expect(injected.install('dsh-hello')).resolves.toMatchObject({ ok: true, restartRequired: true })
+    expect(injected.lastCatalog?.()).toBeUndefined()
     expect(b.install).toHaveBeenCalledWith({ spec: 'dsh-hello' })
     await expect(injected.remove('dsh-hello')).resolves.toMatchObject({ ok: true })
+    expect(injected.lastCatalog?.()).toBeUndefined()
     expect(b.remove).toHaveBeenCalledWith({ packageName: 'dsh-hello' })
 
     b.catalog.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'unavailable' } })
@@ -93,23 +118,39 @@ describe('ui-settings-plugin-marketplace browser plugin', () => {
     const b = await bench()
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(b.slots.entries('settings.plugins.tab')).toHaveLength(0)
+    expect(b.slots.entries('sidebar.footer.action')).toHaveLength(0)
+    expect(b.slots.entries('center.cover')).toHaveLength(0)
 
     const stop = declare(b.slots)
-    await vi.waitFor(() => { expect(b.slots.entries('settings.plugins.tab')).toHaveLength(1) })
+    await vi.waitFor(() => { expect(b.slots.entries('sidebar.footer.action')).toHaveLength(1) })
+    await vi.waitFor(() => { expect(b.slots.entries('center.cover')).toHaveLength(1) })
     b.locale.setLocale('en')
-    expect(resolveSlotLabel(b.slots.entries('settings.plugins.tab')[0]!.options.label)).toBe('Plugin market')
+    expect(resolveSlotLabel(b.slots.entries('sidebar.footer.action')[0]!.options.label)).toBe('Plugin market')
 
     stop()
-    expect(b.slots.entries('settings.plugins.tab')).toHaveLength(0)
+    expect(b.slots.entries('sidebar.footer.action')).toHaveLength(0)
+    expect(b.slots.entries('center.cover')).toHaveLength(0)
     declare(b.slots)
     await vi.waitFor(() => {
-      expect(b.slots.entries('settings.plugins.tab')[0]?.component).toBe(PluginMarketplaceSettingsTab)
+      expect(b.slots.entries('center.cover')[0]?.component).toBe(PluginMarketplacePanel)
     })
 
     await fiber.dispose()
-    expect(b.slots.entries('settings.plugins.tab')).toHaveLength(0)
+    expect(b.slots.entries('sidebar.footer.action')).toHaveLength(0)
     expect(() => b.locale.register(NS, 'zh', {})).not.toThrow()
+    await b.ctx.fiber.dispose()
+  })
+
+  it('swallows a failed catalog prefetch until the cover retries', async () => {
+    const b = await bench()
+    b.catalog.mockRejectedValueOnce(new Error('GitHub timeout'))
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    await vi.waitFor(() => { expect(b.catalog).toHaveBeenCalled() })
+    const injected = (b.slots.entries('center.cover')[0]!.inject as unknown as () => PluginMarketplacePanelInjected)()
+    expect(injected.lastCatalog?.()).toBeUndefined()
+    await expect(injected.catalog()).resolves.toEqual(EMPTY)
+    expect(injected.lastCatalog?.()).toEqual(EMPTY)
     await b.ctx.fiber.dispose()
   })
 })

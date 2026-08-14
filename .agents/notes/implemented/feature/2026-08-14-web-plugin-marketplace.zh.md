@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace/catalog`、`pluginMarketplace/add` 和 `pluginMarketplace/uninstall`。Web“插件”分区由 `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` 贡献第三个 `settings.plugins.tab`（`id: marketplace`，`order: 5`）。
+Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace/catalog`、`pluginMarketplace/add` 和 `pluginMarketplace/uninstall`。该目录的呈现是 `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` 拥有的侧栏一级入口和对话栏封面；见 [插件市场一级入口](2026-08-14-plugin-marketplace-primary-entry.md)。
 
 `catalog` 合并三个来源，并且不会因为 GitHub 失败而拒绝 RPC：
 
@@ -26,13 +26,11 @@ Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace
 
 三条 Remote 以 `pluginMarketplace/catalog|add|uninstall` 加入 `PRIVILEGED_METHODS`（Typert 端点使用 `namespace/method`；Client namespace Service 保留 `install` 与 `remove`），因此局域网调用者不能列出 profile 依赖，也不能以 Host 进程用户身份安装包。把 `Host` 改写到回环的 nginx 仍可到达它们。
 
-该标签页通过 [插件设置标签页](../architecture/2026-08-11-plugin-settings-tabs.md) 已有的 `settings.plugins.tab` slot 注册，不新增 Settings 导航行。
-
 ## 备选方案
 
 **把官方 monorepo 当作可安装的 `dsh plugin add` 规格。** 否决，因为这些包已由 `dsh-base` / `dsh-web-app` 组装。再把它们加成 profile 依赖会重复树内模块，而且替换不了随附副本。
 
-**单独一行名为“市场”的 Settings 导航。** 否决，因为发现、安装与当前 Loader 清单同属“插件”领域。标签 slot 已经存在，第三种视图无需修改分区拥有方即可加入。
+**名为“市场”的 Settings 导航行或插件标签页。** 在 Host/RPC 这次变更中否决；后来的呈现决策记录在 [插件市场一级入口](2026-08-14-plugin-marketplace-primary-entry.md)。
 
 **不重启就热加载新装的 bundle。** 本次否决：Loader 组合是进程启动时的事实，让 Host 在 `dsh plugin add` 之后挂载任意 profile 依赖是另一个运行时项目。界面会写明需要重启，而不是暗示新插件已经生效。
 
@@ -42,12 +40,12 @@ Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace
 
 ## 影响
 
-用户打开设置 → 插件 → **插件市场**，搜索或按官方 / 社区 / 已安装过滤，安装 `github:owner/repo` 或注册表规格，并卸载 profile 依赖。官方行只链接到 GitHub。变更成功后，加载该 profile 的 Host 进程必须重启，新层才会出现在**插件列表**中。
+用户从侧栏打开 **插件市场**，搜索或按官方 / 社区 / 已安装过滤，安装 `github:owner/repo` 或注册表规格，并卸载 profile 依赖。官方行只链接到 GitHub。变更成功后，加载该 profile 的 Host 进程必须重启，新层才会出现在**插件列表**中。
 
-未配置 `githubToken` 时适用 GitHub 匿名 API 配额（每小时 60 次）；配额耗尽表现为失败的 `sources` 行，而不是空产品。目录快照缓存 `catalogCacheMs`（默认 10 分钟），并在成功的安装或卸载后清除。
+未配置 `githubToken` 时适用 GitHub 匿名 API 配额（每小时 60 次）；配额耗尽表现为失败的 `sources` 行，而不是空产品。目录快照缓存 `catalogCacheMs`（默认 10 分钟），在 `persistCatalog` 为 true 时持久化到 `$DSH_HOME`，并在成功的安装或卸载后清除。
 
 安装社区包会在下次启动时以 `dsh` 进程用户运行任意代码。`/DSH/` 仍然无认证；回环钉扎是这些 Remote 唯一的网络围栏。
 
 ## 测试
 
-包测试覆盖规格拒绝、目录合并与 GitHub 失败记录、`dsh plugin` 启动参数、缓存复用与失效、Settings 标签页的加载/失败/重试/过滤/安装/卸载路径，以及特权方法的回环钉扎。Web e2e 拦截 `pluginMarketplace/catalog` 并快照 `[data-marketplace-chrome]`，避免 GitHub 卡片列表把 golden 打成不稳定。覆盖缺口：超过第一页 100 条 topic 命中的 GitHub 分页，以及针对真实注册表的端到端 `dsh plugin add`（仍作为手工部署检查）。
+包测试覆盖规格拒绝、目录合并与 GitHub 失败记录、`dsh plugin` 启动参数、缓存复用与失效、市场封面的加载/失败/重试/过滤/安装/卸载路径，以及特权方法的回环钉扎。Web e2e 拦截 `pluginMarketplace/catalog` 并快照 `[data-marketplace-chrome]`，避免 GitHub 卡片列表把 golden 打成不稳定。覆盖缺口：超过第一页 100 条 topic 命中的 GitHub 分页，以及针对真实注册表的端到端 `dsh plugin add`（仍作为手工部署检查）。

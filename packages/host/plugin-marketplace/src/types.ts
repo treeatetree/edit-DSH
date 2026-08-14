@@ -27,10 +27,24 @@ export interface MarketplacePlugin {
   readonly installSpec: string | null
   /** Installed npm package name when this row is in the profile; null otherwise. */
   readonly packageName: string | null
-  /** GitHub star count when the community search supplied one. */
+  /** GitHub star count when a repository source supplied one. */
   readonly stars: number | null
   /** Official package group directory when origin is official. */
   readonly group: string | null
+  /** Owner avatar URL when GitHub supplied one; null otherwise. */
+  readonly imageUrl: string | null
+  /** GitHub Open Graph image URL when a repository is known; null otherwise. */
+  readonly coverUrl: string | null
+  /** GitHub owner login when a repository is known; null otherwise. */
+  readonly owner: string | null
+  /** Primary language when GitHub supplied one. */
+  readonly language: string | null
+  /** Repository `updated_at` when GitHub supplied one. */
+  readonly updatedAt: string | null
+  /** Fork count when GitHub supplied one. */
+  readonly forks: number | null
+  /** GitHub repository topics when the search payload included them. */
+  readonly topics: readonly string[]
 }
 
 /** One catalog source's fetch outcome for this snapshot. */

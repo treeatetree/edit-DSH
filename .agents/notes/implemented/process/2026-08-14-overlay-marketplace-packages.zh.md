@@ -6,13 +6,13 @@ Status: implemented
 
 ## Problem
 
-云主机 Web 叠加层跑的是 npm 上已发布的 `@deepseek-ai/dsh`。设置里的 **插件市场** 标签页只存在于 fork 包（`dsh-host-plugin-marketplace`、`dsh-client-ui-settings-plugin-marketplace`，以及 `dsh-api-remotes` 的挂载和 `dsh-client-connection` 的特权方法列表）。这些包不在 npm tarball 里，所以 `/DSH/` 看不到该标签页。虚拟机磁盘也装不下完整 monorepo 构建。
+云主机 Web 叠加层跑的是 npm 上已发布的 `@deepseek-ai/dsh`。侧栏 **插件市场** 入口只存在于 fork 包（`dsh-host-plugin-marketplace`、`dsh-client-ui-settings-plugin-marketplace`，以及 `dsh-api-remotes` 的挂载、`dsh-client-connection` 的特权方法列表、`dsh-client-ui-layout` 的 `center.cover` 席位，和 `dsh-client-ui-sidebar` 的页脚堆叠）。这些包不在 npm tarball 里，所以 `/DSH/` 看不到该入口。虚拟机磁盘也装不下完整 monorepo 构建。
 
 ## Decision
 
-[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) 把四份已经构建好的包树复制进 `/opt/dsh/app/node_modules/@deepseek-ai/`，并往 `dsh-web-app` 的 `cordis.patch.yml` 插入两行。npm CLI 里不存在的那两个包还要放到 `$DSH_HOME/profiles/web/node_modules/@deepseek-ai/`，因为 Loader 导入额外行时的父 URL 是 `$DSH_HOME/profiles/web/`，Node ESM 不会从那里走进 CLI 树。Host 行把 `cliPath` 设成叠加层 CLI，把 `profile` 设成 `web`。systemd 把该 CLI 目录放进 `PATH`，因此默认的 `cliPath: dsh` 也能解析。运维在能放下工作区的机器上构建这四个包，再把解压后的目录交给脚本；虚拟机不编译 TypeScript。
+[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) 把已经构建好的包树复制进 `/opt/dsh/app/node_modules/@deepseek-ai/`，并往 `dsh-web-app` 的 `cordis.patch.yml` 插入两行。npm CLI 里不存在的那两个包还要放到 `$DSH_HOME/profiles/web/node_modules/@deepseek-ai/`，因为 Loader 导入额外行时的父 URL 是 `$DSH_HOME/profiles/web/`，Node ESM 不会从那里走进 CLI 树。Host 行把 `cliPath` 设成叠加层 CLI，把 `profile` 设成 `web`。systemd 把该 CLI 目录放进 `PATH`，因此默认的 `cliPath: dsh` 也能解析。运维在能放下工作区的机器上构建这些包，再把解压后的目录交给脚本；虚拟机不编译 TypeScript。
 
-复制的树是 `dsh-host-plugin-marketplace`、`dsh-client-ui-settings-plugin-marketplace`、`dsh-api-remotes` 和 `dsh-client-connection`。必须替换 remotes，因为浏览器侧 Remote 挂载在该 Client 组合里；替换 connection 是为了把 `pluginMarketplace/catalog|add|uninstall` 钉到与其他特权方法相同的回环 Host 改写上。
+复制的树是 `dsh-host-plugin-marketplace`、`dsh-client-ui-settings-plugin-marketplace`、`dsh-api-remotes`、`dsh-client-connection`、`dsh-client-ui-layout` 和 `dsh-client-ui-sidebar`。必须替换 remotes，因为浏览器侧 Remote 挂载在该 Client 组合里；替换 connection 是为了把 `pluginMarketplace/catalog|add|uninstall` 钉到与其他特权方法相同的回环 Host 改写上。替换 layout 是为了声明 `center.cover`；替换 sidebar 是为了把页脚操作叠在设置上方。
 
 ## Alternatives considered
 
@@ -24,10 +24,10 @@ Status: implemented
 
 ## Consequences
 
-- 在 `http://118.145.156.15/DSH/` 打开设置 → 插件 → **插件市场** 时，用的是 fork 的 Host Remote 与标签页。
+- 在 `http://118.145.156.15/DSH/` 打开侧栏 **插件市场** 时，用的是 fork 的 Host Remote 与对话栏封面。
 - 再次运行 `deploy/install.sh` 会重装 npm CLI 并清掉复制的树；之后必须再跑一次 `marketplace/install.sh`。
 - 安装社区插件后，仍会在下次进程启动时以 `dsh` 用户运行该包。
 
 ## Testing
 
-市场 Host 与标签页的包测试仍属于那些包。叠加层证据是重启后线上 `/DSH/` 的 boot JSON 列出 `plugin-marketplace` 与 `ui-settings-plugin-marketplace`，以及设置里的该标签页。`scripts/dsh-nginx-path-prefix.spec.ts` 不覆盖这次复制。
+市场 Host 与封面的包测试仍属于那些包。叠加层证据是重启后线上 `/DSH/` 的 boot JSON 列出 `plugin-marketplace` 与 `ui-settings-plugin-marketplace`，以及侧栏入口打开后的对话栏封面。`scripts/dsh-nginx-path-prefix.spec.ts` 不覆盖这次复制。

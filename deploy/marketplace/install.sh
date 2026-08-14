@@ -7,6 +7,7 @@ prefix="${DSH_PREFIX:-/opt/dsh}"
 src="${1:-}"
 cli="${DSH_CLI:-$prefix/app/node_modules/.bin/dsh}"
 nm="$prefix/app/node_modules/@deepseek-ai"
+profile_nm="$prefix/home/profiles/web/node_modules/@deepseek-ai"
 
 need_root() {
   if [[ $(id -u) -ne 0 ]]; then
@@ -22,9 +23,10 @@ usage() {
 }
 
 copy_package() {
-  local name="$1"
+  local dest_root="$1"
+  local name="$2"
   local from="$src/$name"
-  local to="$nm/$name"
+  local to="$dest_root/$name"
   if [[ ! -f $from/package.json || ! -d $from/lib ]]; then
     echo "marketplace/install.sh: missing built package $from (need package.json and lib/)" >&2
     exit 1
@@ -73,15 +75,20 @@ need_root
 [[ -x $cli ]] || { echo "marketplace/install.sh: missing CLI $cli" >&2; exit 1; }
 [[ -d $nm/dsh-web-app ]] || { echo "marketplace/install.sh: missing $nm/dsh-web-app" >&2; exit 1; }
 
-copy_package dsh-host-plugin-marketplace
-copy_package dsh-client-ui-settings-plugin-marketplace
-copy_package dsh-api-remotes
-copy_package dsh-client-connection
+copy_package "$nm" dsh-host-plugin-marketplace
+copy_package "$nm" dsh-client-ui-settings-plugin-marketplace
+copy_package "$nm" dsh-api-remotes
+copy_package "$nm" dsh-client-connection
+# Loader imports extra profile rows with parent URL $DSH_HOME/profiles/web/,
+# so Node never walks into the CLI tree for those two new package names.
+copy_package "$profile_nm" dsh-host-plugin-marketplace
+copy_package "$profile_nm" dsh-client-ui-settings-plugin-marketplace
 patch_web_app_yml
 chown -R dsh:dsh "$nm/dsh-host-plugin-marketplace" \
   "$nm/dsh-client-ui-settings-plugin-marketplace" \
   "$nm/dsh-api-remotes" \
   "$nm/dsh-client-connection" \
-  "$nm/dsh-web-app/cordis.patch.yml"
+  "$nm/dsh-web-app/cordis.patch.yml" \
+  "$prefix/home/profiles/web/node_modules"
 systemctl restart dsh-web.service
 echo "marketplace/install.sh: overlayed marketplace packages; restarted dsh-web"

@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) 把四份已经构建好的包树复制进 `/opt/dsh/app/node_modules/@deepseek-ai/`，并往 `dsh-web-app` 的 `cordis.patch.yml` 插入两行。Host 行把 `cliPath` 设成叠加层 CLI，把 `profile` 设成 `web`。systemd 把该 CLI 目录放进 `PATH`，因此默认的 `cliPath: dsh` 也能解析。运维在能放下工作区的机器上构建这四个包，再把解压后的目录交给脚本；虚拟机不编译 TypeScript。
+[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) 把四份已经构建好的包树复制进 `/opt/dsh/app/node_modules/@deepseek-ai/`，并往 `dsh-web-app` 的 `cordis.patch.yml` 插入两行。npm CLI 里不存在的那两个包还要放到 `$DSH_HOME/profiles/web/node_modules/@deepseek-ai/`，因为 Loader 导入额外行时的父 URL 是 `$DSH_HOME/profiles/web/`，Node ESM 不会从那里走进 CLI 树。Host 行把 `cliPath` 设成叠加层 CLI，把 `profile` 设成 `web`。systemd 把该 CLI 目录放进 `PATH`，因此默认的 `cliPath: dsh` 也能解析。运维在能放下工作区的机器上构建这四个包，再把解压后的目录交给脚本；虚拟机不编译 TypeScript。
 
 复制的树是 `dsh-host-plugin-marketplace`、`dsh-client-ui-settings-plugin-marketplace`、`dsh-api-remotes` 和 `dsh-client-connection`。必须替换 remotes，因为浏览器侧 Remote 挂载在该 Client 组合里；替换 connection 是为了把 `pluginMarketplace/catalog|add|uninstall` 钉到与其他特权方法相同的回环 Host 改写上。
 

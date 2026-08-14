@@ -10,7 +10,7 @@ A fork wants a browser UI reachable from the public internet while leaving every
 
 ## Decision
 
-[`deploy/`](../../../../deploy/README.md) is a host overlay: it installs the published `@deepseek-ai/dsh` CLI from npm, runs `dsh web --host 127.0.0.1`, and publishes it through nginx. A `:80` `server_name` lists the public IP (and optional names) so a browser can open `http://IP/DSH/` on the port the cloud security group already forwards; unmatched Hosts still hit the existing default_server. On the IP vhost, `/` and `/api` stay liushui/suanzhang, and `/finance` and `/hermes` proxy to those existing apps. DSH lives only under `/DSH/`. The official client still calls origin-root `/api`, `/assets`, and `/plugins`; the `/DSH/` HTML rewrites those URLs and patches `fetch` and `WebSocket`, then `/DSH/api` strips the prefix and sets `Host` to `127.0.0.1:<bind>` so privileged methods (`settings.describe`, credentials, host pickers) pass `isTrustedApiRequest` with an empty trust list. The HTML also injects a `crypto.randomUUID` polyfill because browsers omit that API on insecure HTTP. A dedicated publish port remains for LAN or a later security-group opening. `--trusted-host` lists every public Host the browser may send. TLS tunnels must target the nginx publish port so that rewrite applies. The process user is `dsh`; session data lives under `/opt/dsh/home`.
+[`deploy/`](../../../../deploy/README.md) is a host overlay: it installs the published `@deepseek-ai/dsh` CLI from npm, runs `dsh web --host 127.0.0.1`, and publishes it through nginx. A `:80` `server_name` lists the public IP (and optional names) so a browser can open `http://IP/DSH/` on the port the cloud security group already forwards; unmatched Hosts still hit the existing default_server. On the IP vhost, `/` and `/api` stay liushui/suanzhang, and `/finance` and `/hermes` proxy to those existing apps. DSH lives only under `/DSH/`. The official client still calls origin-root `/api`, `/assets`, and `/plugins`. The `/DSH/` HTML rewrite covers `src="/assets/` (the module script), `href="/assets/` (stylesheets and modulepreload), boot JSON `url` values under `/plugins/`, and the origin-root manifest and favicon; CSS under `/DSH/assets/` also rewrites `url(/assets/` so KaTeX fonts do not resolve to the IP vhost root. That root's `try_files` serves liushui `index.html` for unknown `/assets/*`, so an unrewritten stylesheet returns `200 text/html` and the UI renders without CSS. The injected fetch/WebSocket patch still matches origin-root `/api`, `/assets/`, and `/plugins/`; the HTML substitutions do not rewrite those needles inside the patch. `/DSH/api` then strips the prefix and sets `Host` to `127.0.0.1:<bind>` so privileged methods (`settings.describe`, credentials, host pickers) pass `isTrustedApiRequest` with an empty trust list. The HTML also injects a `crypto.randomUUID` polyfill because browsers omit that API on insecure HTTP. A dedicated publish port remains for LAN or a later security-group opening. `--trusted-host` lists every public Host the browser may send. TLS tunnels must target the nginx publish port so that rewrite applies. The process user is `dsh`; session data lives under `/opt/dsh/home`.
 
 This overlay does not add authentication. Network reachability is the access control unless a later proxy adds identity. The Host rewrite makes the loopback-only privileged RPC reachable on the published hostname.
 
@@ -22,6 +22,10 @@ This overlay does not add authentication. Network reachability is the access con
 
 **Give the official client a URL base path.** Rejected for this overlay: nginx rewrites `/DSH/` HTML and patches `fetch` / `WebSocket` so packages stay unchanged.
 
+**Map origin-root `/assets/` to DSH.** Rejected: the IP vhost root `/assets` belongs to liushui; stealing it would break that app.
+
+**Rewrite every `"/assets/` substring in HTML.** Rejected: that would also rewrite the injected patch's `indexOf("/assets/")` needle, so a later fetch of origin-root `/assets/` would not be prefixed.
+
 **Replace the existing `:80` default_server.** Rejected: unmatched Hosts must still reach liushui, and `/finance` / `/hermes` stay on the IP vhost as proxied locations rather than taking over the whole default_server.
 
 **Build the monorepo on the VM.** Rejected: the official npm CLI is the supported run path, and the VM disk cannot hold a full workspace build.
@@ -32,3 +36,7 @@ This overlay does not add authentication. Network reachability is the access con
 - Opening `http://118.145.156.15/DSH/` serves DSH; `http://118.145.156.15/` stays liushui. `/api` stays suanzhang.
 - A real DNS name is added beside the IP by changing `DSH_SERVER_NAME` and `DSH_PUBLIC_HOST`.
 - Anyone who can complete HTTP to the published Host can drive tools as user `dsh` until an identity proxy is added.
+
+## Testing
+
+`scripts/dsh-nginx-path-prefix.spec.ts` applies the `/DSH/` HTML and `/DSH/assets/` CSS `sub_filter` list to a Vite `index.html` fixture and a KaTeX `@font-face` rule. It requires stylesheet and modulepreload `href="/assets/` to become `/DSH/assets/`, requires `url(/assets/` in CSS to take the same prefix, and requires the injected fetch patch to keep `indexOf("/assets/")` as the origin-root needle.

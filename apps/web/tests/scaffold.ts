@@ -238,7 +238,6 @@ export interface LaunchOptions {
    * Ordinary scenarios pre-acknowledge the durable field before browser boot.
    */
   welcomeNoticePending?: boolean
-  welcomeNoticePending?: boolean
   /**
    * Patch the shipped DeepSeek search row to a deterministic endpoint and
    * credential reference. Browser search scenarios keep the real provider and

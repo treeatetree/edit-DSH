@@ -22,7 +22,6 @@ import {
   IconEllipsisOutline16, IconNewChatOutline16, IconPanelLeftOutline16,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { nextShellPreference } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SidebarRootComponentProps } from './contract/slots.ts'
 import css from './SidebarRoot.module.css'
 
@@ -46,7 +45,6 @@ export function SidebarRoot({
   collapsed,
   width,
   presentation = 'column',
-  shellPreference = 'auto',
   shellMode = 'desktop',
   nextPreference,
   startSession,
@@ -128,7 +126,7 @@ export function SidebarRoot({
     return () => { document.removeEventListener('keydown', onKeyDown) }
   }, [collapsed, presentation, toggleSidebar])
 
-  const nextLayout = nextPreference ?? nextShellPreference(shellPreference)
+  const nextLayout = nextPreference
   const layoutLabel = nextLayout === 'auto'
     ? t('nav.layoutAuto')
     : nextLayout === 'compact' ? t('nav.layoutCompact') : t('nav.layoutDesktop')

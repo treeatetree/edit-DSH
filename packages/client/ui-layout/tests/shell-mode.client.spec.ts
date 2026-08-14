@@ -61,7 +61,7 @@ describe('readShellMedia', () => {
       matches: query.includes('horizontal-viewport-segments: 2') || query.includes('(pointer: coarse)'),
     })) as typeof window.matchMedia
     expect(readShellMedia(media)).toEqual({ dualSegment: true, coarsePointer: true })
-    const none = ((() => ({ matches: false })) as typeof window.matchMedia)
+    const none = ((_query: string) => ({ matches: false })) as typeof window.matchMedia
     expect(readShellMedia(none)).toEqual({ dualSegment: false, coarsePointer: false })
   })
 })

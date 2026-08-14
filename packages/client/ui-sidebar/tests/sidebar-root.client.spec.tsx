@@ -23,18 +23,24 @@ const neverHook = (() => { throw new Error('shell must not read global hooks') }
 
 function mountShell({
   collapsed = false, width = 300, presentation = 'column' as 'column' | 'drawer',
-}: { collapsed?: boolean; width?: number; presentation?: 'column' | 'drawer' } = {}) {
+  nextPreference,
+}: { collapsed?: boolean; width?: number; presentation?: 'column' | 'drawer'; nextPreference?: SidebarRootComponentProps['nextPreference'] } = {}) {
   const startSession = vi.fn()
   const toggleSidebar = vi.fn()
   const setShellPreference = vi.fn()
   let regionOwner: SidebarSectionOwnerProps | undefined
   let settingsOwner: SidebarSettingsOwnerProps | undefined
   let footerActionOwner: SidebarFooterActionOwnerProps | undefined
-  let current = { collapsed, width, presentation }
+  const drawer = presentation === 'drawer'
+  let current = {
+    collapsed, width, presentation,
+    nextPreference: nextPreference ?? (drawer ? 'desktop' : 'compact'),
+  }
   const root = () => (
     <SidebarRoot
       collapsed={current.collapsed} width={current.width} presentation={current.presentation}
-      shellPreference="auto" shellMode={current.presentation === 'drawer' ? 'compact' : 'desktop'}
+      shellPreference="auto" shellMode={drawer ? 'compact' : 'desktop'}
+      nextPreference={current.nextPreference}
       useSessions={neverHook} useWorkspaces={neverHook}
       startSession={startSession} toggleSidebar={toggleSidebar} setShellPreference={setShellPreference} t={t}
       renderSlot={((
@@ -125,7 +131,8 @@ describe('SidebarRoot shell', () => {
   it('labels the switch with the automatic layout copy', () => {
     render(
       <SidebarRoot
-        collapsed={false} width={300} nextPreference="auto"
+        collapsed={false} width={300} presentation="column"
+        shellPreference="auto" shellMode="desktop" nextPreference="auto"
         useSessions={neverHook} useWorkspaces={neverHook}
         startSession={vi.fn()} toggleSidebar={vi.fn()} setShellPreference={vi.fn()} t={t}
         renderSlot={((() => <div />) as SidebarRootComponentProps['renderSlot'])}
@@ -185,7 +192,8 @@ describe('SidebarRoot compact drawer', () => {
     const setShellPreference = vi.fn()
     render(
       <SidebarRoot
-        collapsed={true} width={320} presentation="drawer" nextPreference="desktop"
+        collapsed={true} width={320} presentation="drawer"
+        shellPreference="auto" shellMode="compact" nextPreference="desktop"
         useSessions={neverHook} useWorkspaces={neverHook}
         startSession={vi.fn()} toggleSidebar={vi.fn()} setShellPreference={setShellPreference} t={t}
         renderSlot={((() => <div />) as SidebarRootComponentProps['renderSlot'])}

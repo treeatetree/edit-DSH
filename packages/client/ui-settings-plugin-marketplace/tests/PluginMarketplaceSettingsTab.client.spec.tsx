@@ -43,6 +43,16 @@ const EMPTY: Snapshot = {
   profile: 'web',
 }
 
+const BLANK = {
+  imageUrl: null,
+  coverUrl: null,
+  owner: null,
+  language: null,
+  updatedAt: null,
+  forks: null,
+  topics: [],
+} as const
+
 const SNAPSHOT = {
   entries: [
     {
@@ -55,6 +65,9 @@ const SNAPSHOT = {
       packageName: null,
       stars: null,
       group: 'host',
+      ...BLANK,
+      imageUrl: 'https://github.com/deepseek-ai.png',
+      owner: 'deepseek-ai',
     },
     {
       id: 'community:acme/dsh-hello',
@@ -66,6 +79,14 @@ const SNAPSHOT = {
       packageName: null,
       stars: 12,
       group: null,
+      ...BLANK,
+      imageUrl: 'https://avatars.example/acme.png',
+      coverUrl: 'https://opengraph.githubassets.com/1/acme/dsh-hello',
+      owner: 'acme',
+      language: 'TypeScript',
+      updatedAt: '2026-08-14T12:00:00Z',
+      forks: 4,
+      topics: ['dsh-plugin'],
     },
     {
       id: 'community:acme/silent',
@@ -77,6 +98,7 @@ const SNAPSHOT = {
       packageName: null,
       stars: null,
       group: null,
+      ...BLANK,
     },
     {
       id: 'installed:dsh-world',
@@ -88,6 +110,7 @@ const SNAPSHOT = {
       packageName: 'dsh-world',
       stars: null,
       group: null,
+      ...BLANK,
     },
   ],
   sources: [
@@ -131,12 +154,22 @@ describe('PluginMarketplaceSettingsTab', () => {
     expect(screen.getByText(en.spec)).toBeTruthy()
     expect(screen.getByText('github:acme/dsh-hello')).toBeTruthy()
     expect(screen.getByText(en.stars)).toBeTruthy()
-    expect(screen.getByText('12')).toBeTruthy()
+    expect(screen.getAllByText('12').length).toBeGreaterThan(0)
+    expect(screen.getByText(en.owner)).toBeTruthy()
+    expect(screen.getByText('acme')).toBeTruthy()
     expect(document.querySelector('[data-kind="install"]')).toBeTruthy()
+    expect(view.container.querySelector('img.cover, [class*="cover"]')).toBeTruthy()
+    expect(view.container.querySelector('img[src="https://avatars.example/acme.png"]')).toBeTruthy()
+    const cover = view.container.querySelector('img[src="https://opengraph.githubassets.com/1/acme/dsh-hello"]')
+    expect(cover).toBeTruthy()
+    fireEvent.error(cover!)
+    expect((cover as HTMLImageElement).hidden).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'silent, Community' }))
-    expect(screen.queryByText('Hello bundle')).toBeNull()
-    expect(screen.queryByText(en.stars)).toBeNull()
+    expect(view.container.querySelector('[data-marketplace-entry="community:acme/dsh-hello"]')
+      ?.getAttribute('data-open')).toBeNull()
+    expect(screen.queryByText('github:acme/dsh-hello')).toBeNull()
+    expect(screen.queryByText(en.owner)).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'dsh-world, Installed' }))
     expect(screen.getByRole('button', { name: en.remove })).toBeTruthy()
@@ -166,6 +199,26 @@ describe('PluginMarketplaceSettingsTab', () => {
     fireEvent.change(search, { target: { value: 'not-a-plugin' } })
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
     expect(screen.getByText(en.emptySearch)).toBeTruthy()
+  })
+
+  it('matches owner and language when topics is absent', async () => {
+    const snapshot = {
+      ...SNAPSHOT,
+      entries: [{
+        ...SNAPSHOT.entries[1]!,
+        id: 'community:acme/orphan-topics',
+        title: 'orphan-topics',
+        owner: 'search-owner',
+        language: 'Go',
+        topics: undefined,
+      }],
+    } as unknown as Snapshot
+    render(<PluginMarketplaceSettingsTab {...props({ catalog: async () => snapshot })} />)
+    const search = await screen.findByRole('searchbox', { name: en.search })
+    fireEvent.change(search, { target: { value: 'search-owner' } })
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    fireEvent.change(search, { target: { value: 'Go' } })
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
   })
 
   it('shows a generic failure and retries into the empty state', async () => {
@@ -251,5 +304,21 @@ describe('PluginMarketplaceSettingsTab', () => {
     const pendingFailure = render(<PluginMarketplaceSettingsTab {...props({ catalog: () => deferredFailure.promise })} />)
     pendingFailure.unmount()
     await act(async () => { deferredFailure.reject(new Error('late failure')) })
+  })
+
+  it('paints a cached catalog immediately while a refresh is in flight', async () => {
+    const deferred = Promise.withResolvers<Snapshot>()
+    const view = render(<PluginMarketplaceSettingsTab {...props({
+      catalog: () => deferred.promise,
+      lastCatalog: () => SNAPSHOT,
+    })} />)
+    expect(view.container.querySelector('[data-marketplace-count]')?.textContent).toBe('4')
+    expect(screen.queryByText(en.loading)).toBeNull()
+    const avatar = view.container.querySelector('img[src="https://github.com/deepseek-ai.png"]')
+    expect(avatar).toBeTruthy()
+    fireEvent.error(avatar!)
+    expect((avatar as HTMLImageElement).hidden).toBe(true)
+    await act(async () => { deferred.resolve(EMPTY) })
+    expect(await screen.findByText(en.empty)).toBeTruthy()
   })
 })

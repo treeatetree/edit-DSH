@@ -8,7 +8,7 @@
 
 公开 payload 类型位于 `./types`。Typert 生成由 `./typert` 与 `./remote` 导出的 Host 和 Client Remote 产物。该服务仅供 Remote 使用，不声明同进程 Cordis `Context` merge。Client 包通过 [`api-remotes`](../../api/remotes/README.md) 组合消费它。
 
-所有随部署变化的选项都是 `Config` 字段：官方仓库、GitHub topic、API 源、ref、User-Agent、可选 token、跳过的官方分组、profile 名、目录缓存时长、安装超时，以及 CLI 路径。
+所有随部署变化的选项都是 `Config` 字段：官方仓库、GitHub topic、API 源、ref、User-Agent、可选 token、跳过的官方分组、profile 名、目录缓存时长、是否把目录持久化到 `$DSH_HOME/plugin-marketplace-catalog.json`、是否在插件加载时预取目录、安装超时，以及 CLI 路径。社区行带上 GitHub 搜索里的描述、星标、fork、语言、topic、所有者头像和 Open Graph 图 URL。官方行通过一次额外的 `/repos/{owner}/{repo}` 读取复制仓库级星标、语言和所有者头像。
 
 ## 模型体验
 

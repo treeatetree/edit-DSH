@@ -9,7 +9,7 @@ import {
   IconChevronDownOutline14,
   IconSearchOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginMarketplaceLocaleKey } from './locales.ts'
 import css from './PluginMarketplaceSettingsTab.module.css'
 
@@ -21,12 +21,13 @@ export interface PluginMarketplaceSettingsTabInjected {
   install: (spec: string) => Promise<MarketplaceMutationResult>
   /** Remove one installed profile dependency. */
   remove: (packageName: string) => Promise<MarketplaceMutationResult>
+  /** Last successful catalog, used to paint immediately while a refresh runs. */
+  lastCatalog?: () => MarketplaceSnapshot | undefined
 }
 
-/** Full component props assembled by the Settings slot renderer. */
+/** Catalog body props: locale plus the Host Remote face. */
 export type PluginMarketplaceSettingsTabProps =
-  PropsRuntime<'settings.plugins.tab'>
-  & PropsLocale<'settings.pluginMarketplace'>
+  PropsLocale<'settings.pluginMarketplace'>
   & InjectFace<PluginMarketplaceSettingsTabInjected>
 
 type ViewState =
@@ -55,8 +56,16 @@ const FILTERS = ['all', 'official', 'community', 'installed'] as const satisfies
 function matches(entry: MarketplacePlugin, query: string, filter: FilterId): boolean {
   if (filter !== 'all' && entry.origin !== filter) return false
   if (query.length === 0) return true
-  return [entry.title, entry.description, entry.installSpec ?? '', entry.packageName ?? '', entry.group ?? '']
-    .some(value => value.toLocaleLowerCase().includes(query))
+  return [
+    entry.title,
+    entry.description,
+    entry.installSpec ?? '',
+    entry.packageName ?? '',
+    entry.group ?? '',
+    entry.owner ?? '',
+    entry.language ?? '',
+    ...(entry.topics ?? []),
+  ].some(value => value.toLocaleLowerCase().includes(query))
 }
 
 /** Render the plugin marketplace catalog, install, and remove controls. */
@@ -64,6 +73,7 @@ export function PluginMarketplaceSettingsTab({
   catalog,
   install,
   remove,
+  lastCatalog,
   t,
 }: PluginMarketplaceSettingsTabProps): ReactNode {
   const catalogId = useId()
@@ -74,7 +84,10 @@ export function PluginMarketplaceSettingsTab({
   const [customSpec, setCustomSpec] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [state, setState] = useState<ViewState>({ status: 'loading' })
+  const [state, setState] = useState<ViewState>(() => {
+    const snapshot = lastCatalog?.()
+    return snapshot === undefined ? { status: 'loading' } : { status: 'ready', snapshot }
+  })
 
   useEffect(() => {
     let current = true
@@ -157,7 +170,7 @@ export function PluginMarketplaceSettingsTab({
               />
             </label>
             <div className={css.filters} role="group" aria-label={t('catalog')}>
-              {FILTERS.map((id) => (
+              {FILTERS.map(id => (
                 <button
                   key={id}
                   type="button"
@@ -212,6 +225,16 @@ export function PluginMarketplaceSettingsTab({
                     data-marketplace-entry={entry.id}
                     data-open={open ? 'true' : undefined}
                   >
+                    {entry.coverUrl !== null && entry.coverUrl.length > 0 ? (
+                      <img
+                        className={css.cover}
+                        src={entry.coverUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        onError={(event) => { event.currentTarget.hidden = true }}
+                      />
+                    ) : null}
                     <button
                       className={css.cardContent}
                       type="button"
@@ -222,22 +245,49 @@ export function PluginMarketplaceSettingsTab({
                         setExpanded(current => current === entry.id ? null : entry.id)
                       }}
                     >
-                      <strong className={css.cardTitle} title={entry.title}>{entry.title}</strong>
+                      {entry.imageUrl !== null && entry.imageUrl.length > 0 ? (
+                        <img
+                          className={css.avatar}
+                          src={entry.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          onError={(event) => { event.currentTarget.hidden = true }}
+                        />
+                      ) : null}
+                      <span className={css.cardCopy}>
+                        <strong className={css.cardTitle} title={entry.title}>{entry.title}</strong>
+                        {entry.description.length > 0
+                          ? <span className={css.summary}>{entry.description}</span>
+                          : null}
+                      </span>
                       <span className={css.cardTrailing}>
                         <span className={css.configTag} data-origin={entry.origin}>{origin}</span>
+                        {entry.stars !== null ? (
+                          <span className={css.metric} title={t('stars')}>{entry.stars}</span>
+                        ) : null}
                         <IconChevronDownOutline14 className={css.chevron} size={12} aria-hidden="true" />
                       </span>
                     </button>
                     {open ? (
                       <div className={css.cardDetails} id={detailId}>
-                        {entry.description.length > 0
-                          ? <p className={css.description}>{entry.description}</p>
-                          : null}
                         <dl className={css.details}>
+                          {entry.owner !== null ? (
+                            <div>
+                              <dt>{t('owner')}</dt>
+                              <dd>{entry.owner}</dd>
+                            </div>
+                          ) : null}
                           {entry.group !== null ? (
                             <div>
                               <dt>{t('group')}</dt>
                               <dd>{entry.group}</dd>
+                            </div>
+                          ) : null}
+                          {entry.language !== null ? (
+                            <div>
+                              <dt>{t('language')}</dt>
+                              <dd>{entry.language}</dd>
                             </div>
                           ) : null}
                           {entry.installSpec !== null ? (
@@ -250,6 +300,24 @@ export function PluginMarketplaceSettingsTab({
                             <div>
                               <dt>{t('stars')}</dt>
                               <dd>{entry.stars}</dd>
+                            </div>
+                          ) : null}
+                          {entry.forks !== null ? (
+                            <div>
+                              <dt>{t('forks')}</dt>
+                              <dd>{entry.forks}</dd>
+                            </div>
+                          ) : null}
+                          {entry.updatedAt !== null ? (
+                            <div>
+                              <dt>{t('updated')}</dt>
+                              <dd>{entry.updatedAt.slice(0, 10)}</dd>
+                            </div>
+                          ) : null}
+                          {entry.topics !== undefined && entry.topics.length > 0 ? (
+                            <div>
+                              <dt>{t('topics')}</dt>
+                              <dd>{entry.topics.join(', ')}</dd>
                             </div>
                           ) : null}
                         </dl>

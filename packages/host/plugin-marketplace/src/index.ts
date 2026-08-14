@@ -4,6 +4,7 @@
  * `dsh plugin`.
  */
 
+import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { resolveProfileDir } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
@@ -17,6 +18,7 @@ import {
   loadCatalog,
   type CatalogFetcher,
 } from './catalog.ts'
+import { fileCatalogCacheStore, type CatalogCacheStore } from './cache.ts'
 import { installPlugin, removePlugin } from './install.ts'
 import type {
   MarketplaceInstallRequest,
@@ -47,6 +49,10 @@ export interface Config {
   profile: string
   /** Milliseconds a catalog snapshot is reused. */
   catalogCacheMs: number
+  /** When true, reuse `$DSH_HOME/plugin-marketplace-catalog.json` across process starts. */
+  persistCatalog: boolean
+  /** When true, start a catalog fetch as soon as the plugin loads. */
+  prefetchCatalog: boolean
   /** Milliseconds `dsh plugin add|remove` may run. */
   installTimeoutMs: number
   /** Executable path or PATH name of the `dsh` CLI. */
@@ -65,6 +71,8 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
     officialSkipGroups: z.array(z.string()).default(['boot', 'examples', 'test-support', 'typert', 'util']),
     profile: z.string().default('web'),
     catalogCacheMs: z.natural().min(0).default(600_000),
+    persistCatalog: z.boolean().default(true),
+    prefetchCatalog: z.boolean().default(true),
     installTimeoutMs: z.natural().min(1).default(300_000),
     cliPath: z.string().default('dsh'),
   })
@@ -72,15 +80,25 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
   private cache: { readonly expiresAt: number; readonly snapshot: MarketplaceSnapshot } | undefined
   private readonly fetcher: CatalogFetcher
   private readonly run: NativeCommandRunner
+  private readonly persist: CatalogCacheStore | undefined
+  private persistLoad: Promise<{ readonly expiresAt: number; readonly snapshot: MarketplaceSnapshot } | undefined> | undefined
+  private inflight: Promise<MarketplaceSnapshot> | undefined
 
   constructor(
     ctx: Context,
     private config: Config,
-    options: { fetcher?: CatalogFetcher; run?: NativeCommandRunner } = {},
+    options: { fetcher?: CatalogFetcher; run?: NativeCommandRunner; persist?: CatalogCacheStore } = {},
   ) {
     super(ctx, 'pluginMarketplace')
     this.fetcher = options.fetcher ?? defaultCatalogFetcher
     this.run = options.run ?? runNativeCommand
+    this.persist = options.persist ?? (
+      this.config.persistCatalog
+        ? fileCatalogCacheStore(join(resolveDshHome(), 'plugin-marketplace-catalog.json'))
+        : undefined
+    )
+    this.persistLoad = this.persist?.load()
+    if (this.config.prefetchCatalog) void this.catalog()
   }
 
   /**
@@ -91,6 +109,25 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
   async catalog(): Promise<MarketplaceSnapshot> {
     const now = Date.now()
     if (this.cache !== undefined && this.cache.expiresAt > now) return this.cache.snapshot
+    if (this.inflight !== undefined) return this.inflight
+    const pending = this.refresh(now)
+    this.inflight = pending
+    try {
+      return await pending
+    } finally {
+      if (this.inflight === pending) this.inflight = undefined
+    }
+  }
+
+  private async refresh(now: number): Promise<MarketplaceSnapshot> {
+    if (this.persistLoad !== undefined) {
+      const disk = await this.persistLoad
+      this.persistLoad = undefined
+      if (disk !== undefined && disk.expiresAt > now) {
+        this.cache = disk
+        return disk.snapshot
+      }
+    }
     const snapshot = await loadCatalog({
       officialRepository: this.config.officialRepository,
       githubTopic: this.config.githubTopic,
@@ -102,6 +139,13 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
       profileDir: resolveProfileDir(this.config.profile, resolveDshHome()),
     }, this.fetcher, this.config.githubToken === '' ? undefined : this.config.githubToken)
     this.cache = { expiresAt: now + this.config.catalogCacheMs, snapshot }
+    if (this.persist !== undefined) {
+      try {
+        await this.persist.save(this.cache)
+      } catch {
+        // Disk cache is a speedup; the RPC already holds the snapshot.
+      }
+    }
     return snapshot
   }
 
@@ -117,7 +161,7 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
       profile: this.config.profile,
       timeoutMs: this.config.installTimeoutMs,
     }, request.spec, this.run)
-    if (result.ok) this.cache = undefined
+    if (result.ok) await this.dropCache()
     return result
   }
 
@@ -133,8 +177,20 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
       profile: this.config.profile,
       timeoutMs: this.config.installTimeoutMs,
     }, request.packageName, this.run)
-    if (result.ok) this.cache = undefined
+    if (result.ok) await this.dropCache()
     return result
+  }
+
+  private async dropCache(): Promise<void> {
+    this.cache = undefined
+    this.persistLoad = undefined
+    this.inflight = undefined
+    if (this.persist === undefined) return
+    try {
+      await this.persist.clear()
+    } catch {
+      // Memory cache is already empty; a leftover file is overwritten on the next save.
+    }
   }
 }
 

@@ -18,7 +18,7 @@ need_root() {
 
 usage() {
   echo "usage: marketplace/install.sh <dir-with-package-folders>" >&2
-  echo "  expected folders: dsh-host-plugin-marketplace dsh-client-ui-settings-plugin-marketplace dsh-api-remotes dsh-client-connection" >&2
+  echo "  expected folders: dsh-host-plugin-marketplace dsh-client-ui-settings-plugin-marketplace dsh-api-remotes dsh-client-connection dsh-client-ui-layout dsh-client-ui-sidebar" >&2
   exit 1
 }
 
@@ -77,6 +77,8 @@ need_root
 
 copy_package "$nm" dsh-host-plugin-marketplace
 copy_package "$nm" dsh-client-ui-settings-plugin-marketplace
+copy_package "$nm" dsh-client-ui-layout
+copy_package "$nm" dsh-client-ui-sidebar
 copy_package "$nm" dsh-api-remotes
 copy_package "$nm" dsh-client-connection
 # Loader imports extra profile rows with parent URL $DSH_HOME/profiles/web/,
@@ -86,6 +88,8 @@ copy_package "$profile_nm" dsh-client-ui-settings-plugin-marketplace
 patch_web_app_yml
 chown -R dsh:dsh "$nm/dsh-host-plugin-marketplace" \
   "$nm/dsh-client-ui-settings-plugin-marketplace" \
+  "$nm/dsh-client-ui-layout" \
+  "$nm/dsh-client-ui-sidebar" \
   "$nm/dsh-api-remotes" \
   "$nm/dsh-client-connection" \
   "$nm/dsh-web-app/cordis.patch.yml" \

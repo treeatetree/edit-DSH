@@ -1,0 +1,23 @@
+[Unit]
+Description=DeepSeek Harness Web UI (official npm CLI, loopback)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dsh
+Group=dsh
+WorkingDirectory=/opt/dsh/workspace
+EnvironmentFile=/opt/dsh/env
+Environment=HOME=/opt/dsh
+Environment=DSH_HOME=/opt/dsh/home
+ExecStart=/opt/dsh/bin/start-web.sh
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=8
+KillSignal=SIGTERM
+# Official dsh treats SIGTERM as a clean stop.
+SuccessExitStatus=0 SIGTERM
+
+[Install]
+WantedBy=multi-user.target

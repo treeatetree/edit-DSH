@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-14-cloud-web-reverse-proxy-overlay.md
-2026-08-14-cloud-web-reverse-proxy-overlay.md: 695befde52f8af75b3e489a0d8ab1c03a656d300
-2026-08-14-cloud-web-reverse-proxy-overlay.zh.md: 9dd7ef8634855899cc0acab038eaaea820c9b2b0
+2026-08-14-cloud-web-reverse-proxy-overlay.md: 32e791781120fe75183a0017bb3ac305c82f05c6
+2026-08-14-cloud-web-reverse-proxy-overlay.zh.md: 299450a9236199e422055f8ae740d3fa3e93a05f

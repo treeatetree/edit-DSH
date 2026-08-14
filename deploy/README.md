@@ -28,7 +28,7 @@ The shipped defaults publish `http://118.145.156.15/` on `:80` (the port the clo
 
 ## After boot
 
-Open `http://118.145.156.15/` in a browser. In **Settings → Models**, paste a DeepSeek API key; the overlay does not require `DEEPSEEK_API_KEY` in the environment. Choose `/opt/dsh/workspace` as the workspace. `/finance` and `/hermes` on that IP still proxy to the host's existing apps. The liushui homepage at `/` on this IP Host is DSH, because the Web client needs origin-root `/` and `/api`.
+Open `http://118.145.156.15/` in a browser. In **Settings → Models**, paste a DeepSeek API key; the overlay does not require `DEEPSEEK_API_KEY` in the environment. Choose `/opt/dsh/workspace` as the workspace. `/finance` and `/hermes` on that IP still proxy to the host's existing apps. The liushui homepage at `/` on this IP Host is DSH, because the Web client needs origin-root `/` and `/api`. The `:80` HTML response injects a `crypto.randomUUID` polyfill so the published CLI can run on insecure HTTP.
 
 Point TLS tunnels (cloudflared, Caddy) at the nginx publish port (`DSH_PUBLISH_PORT`, default `13080`), not at `DSH_BIND_PORT`. A tunnel aimed at `127.0.0.1:3080` skips the Host rewrite, and Settings → Models returns HTTP 403.
 

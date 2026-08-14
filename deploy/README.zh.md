@@ -28,7 +28,7 @@ sudo bash deploy/install.sh
 
 ## After boot
 
-用浏览器打开 `http://118.145.156.15/`。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。该 IP 上的 `/finance` 与 `/hermes` 仍转到主机上已有的应用。此 IP Host 的 `/` 与 `/api` 归 DSH，因为 Web 客户端需要站点根上的这两个前缀。
+用浏览器打开 `http://118.145.156.15/`。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。该 IP 上的 `/finance` 与 `/hermes` 仍转到主机上已有的应用。此 IP Host 的 `/` 与 `/api` 归 DSH，因为 Web 客户端需要站点根上的这两个前缀。`:80` 的 HTML 会注入 `crypto.randomUUID` polyfill，已发布 CLI 才能在非安全 HTTP 下运行。
 
 TLS 隧道（cloudflared、Caddy）必须指向 nginx 发布端口（`DSH_PUBLISH_PORT`，默认 `13080`），不要指向 `DSH_BIND_PORT`。隧道直连 `127.0.0.1:3080` 会跳过 Host 改写，设置 → 模型会返回 HTTP 403。
 

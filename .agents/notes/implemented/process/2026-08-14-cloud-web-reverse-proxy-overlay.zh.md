@@ -10,7 +10,7 @@ fork 需要从公网打开浏览器 UI，同时保持官方 `packages/` 树完�
 
 ## Decision
 
-[`deploy/`](../../../../deploy/README.md) 是主机叠加层：从 npm 安装已发布的 `@deepseek-ai/dsh` CLI，运行 `dsh web --host 127.0.0.1`，再经 nginx 对外发布。`:80` 的 `server_name` 列出公网 IP（及可选名字），浏览器才能在云安全组已经放行的端口上打开 `http://IP/`；未匹配的 Host 仍到现有 default_server。IP 虚拟主机上的 `/finance` 与 `/hermes` 转到那些已有应用；该 Host 上的 `/` 与 `/api` 归 DSH，因为 Web 客户端需要站点根上的这两个前缀。专用发布端口留给内网或之后在安全组放行。`--trusted-host` 列出浏览器可能发送的每一个公网 Host。`/api` location 把 `Host` 设为 `127.0.0.1:<bind>` 并省略 `Origin`，因为特权方法（`settings.describe`、凭据、主机选择器）用空信任列表调用 `isTrustedApiRequest`，因此只接受回环 Host。TLS 隧道必须指向 nginx 发布端口，该改写才会生效。进程用户是 `dsh`；会话数据在 `/opt/dsh/home`。
+[`deploy/`](../../../../deploy/README.md) 是主机叠加层：从 npm 安装已发布的 `@deepseek-ai/dsh` CLI，运行 `dsh web --host 127.0.0.1`，再经 nginx 对外发布。`:80` 的 `server_name` 列出公网 IP（及可选名字），浏览器才能在云安全组已经放行的端口上打开 `http://IP/`；未匹配的 Host 仍到现有 default_server。IP 虚拟主机上的 `/finance` 与 `/hermes` 转到那些已有应用；该 Host 上的 `/` 与 `/api` 归 DSH，因为 Web 客户端需要站点根上的这两个前缀。专用发布端口留给内网或之后在安全组放行。`:80` 的 HTML location 会注入 `crypto.randomUUID` polyfill，因为已发布 CLI 会调用该 API，而浏览器在非安全 HTTP 下不提供它。`--trusted-host` 列出浏览器可能发送的每一个公网 Host。`/api` location 把 `Host` 设为 `127.0.0.1:<bind>` 并省略 `Origin`，因为特权方法（`settings.describe`、凭据、主机选择器）用空信任列表调用 `isTrustedApiRequest`，因此只接受回环 Host。TLS 隧道必须指向 nginx 发布端口，该改写才会生效。进程用户是 `dsh`；会话数据在 `/opt/dsh/home`。
 
 本叠加层不提供认证。在后面加身份代理之前，能连上该 Host 即能访问。Host 改写让仅回环的特权 RPC 在已发布主机名上可达。
 

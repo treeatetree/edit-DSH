@@ -68,12 +68,17 @@ install_nginx() {
       -e "s/__DSH_BIND_PORT__/$bind_port/g" \
       -e "s/__DSH_SERVER_NAME__/$server_name/g" \
       "$root/nginx/dsh-web.conf" >"$dest"
-  nginx -t
-  # Prefer a direct HUP of the master: systemd reload can fail on PrivateTmp
-  # namespace setup while the long-running master is still healthy.
+  /usr/sbin/nginx -t
+  # Prefer a direct HUP of the distro master: systemd reload can fail on
+  # PrivateTmp namespace setup, and `nginx -s reload` may signal a different
+  # master when Kong/OpenResty also run on the host.
   if ! systemctl reload nginx; then
-    echo "install.sh: systemctl reload nginx failed; sending HUP to the master" >&2
-    nginx -s reload
+    echo "install.sh: systemctl reload nginx failed; sending HUP to /run/nginx.pid" >&2
+    if [[ -f /run/nginx.pid ]]; then
+      kill -HUP "$(cat /run/nginx.pid)"
+    else
+      /usr/sbin/nginx -s reload
+    fi
   fi
 }
 

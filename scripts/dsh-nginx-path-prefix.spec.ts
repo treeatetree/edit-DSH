@@ -48,6 +48,7 @@ function locationBlock(prefix: string): string {
 
 const htmlLocation = locationBlock('location ^~ /__DSH_HTTP_PATH__/ {')
 const assetsLocation = locationBlock('location ^~ /__DSH_HTTP_PATH__/assets/ {')
+const pluginsLocation = locationBlock('location ^~ /__DSH_HTTP_PATH__/plugins/ {')
 const htmlFilters = extractSubFilters(htmlLocation)
 const assetFilters = extractSubFilters(assetsLocation)
 
@@ -93,5 +94,17 @@ describe('cloud web /DSH/ nginx path-prefix rewrite', () => {
   it('keeps href=/assets/ as its own substitution, not a generic "/assets/ rewrite', () => {
     expect(htmlLocation).toContain("sub_filter 'href=\"/assets/'")
     expect(htmlLocation.includes("sub_filter '\"/assets/'")).toBe(false)
+  })
+
+  it('gzips buffered plugin JS and hashed assets after stripping upstream encoding', () => {
+    expect(nginxConf).toMatch(/^\s*gzip on;/m)
+    expect(nginxConf).toMatch(/^\s*gzip_proxied any;/m)
+    expect(nginxConf).toMatch(/^\s*gzip_types .*application\/javascript/m)
+    expect(assetsLocation).toContain('proxy_buffering on')
+    expect(assetsLocation).toContain('expires 7d')
+    expect(pluginsLocation).toContain('proxy_buffering on')
+    expect(pluginsLocation).toContain('Accept-Encoding ""')
+    expect(pluginsLocation.includes('sub_filter')).toBe(false)
+    expect(htmlLocation).toContain('proxy_buffering off')
   })
 })

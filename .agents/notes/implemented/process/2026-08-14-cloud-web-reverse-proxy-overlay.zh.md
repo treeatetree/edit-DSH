@@ -10,7 +10,9 @@ fork 需要从公网打开浏览器 UI，同时保持官方 `packages/` 树完�
 
 ## Decision
 
-[`deploy/`](../../../../deploy/README.md) 是主机叠加层：从 npm 安装已发布的 `@deepseek-ai/dsh` CLI，运行 `dsh web --host 127.0.0.1`，再经 nginx 对外发布。`:80` 的 `server_name` 列出公网 IP（及可选名字），浏览器才能在云安全组已经放行的端口上打开 `http://IP/DSH/`；未匹配的 Host 仍到现有 default_server。IP 虚拟主机上 `/` 与 `/api` 仍是流水/算账，`/finance` 与 `/hermes` 转到那些已有应用。DSH 只挂在 `/DSH/`。官方客户端仍请求站点根上的 `/api`、`/assets`、`/plugins`。`/DSH/` 的 HTML 改写覆盖 `src="/assets/`（模块脚本）、`href="/assets/`（样式表与 modulepreload）、`/plugins/` 下的 boot JSON `url`，以及站点根上的 manifest 与 favicon；`/DSH/assets/` 下的 CSS 还会改写 `url(/assets/`，以免 KaTeX 字体落到 IP 虚拟主机根路径。该根路径的 `try_files` 会把未知的 `/assets/*` 做成流水 `index.html`，所以未改写的样式表会以 `200 text/html` 返回，界面没有 CSS。注入的 fetch/WebSocket 补丁仍匹配站点根上的 `/api`、`/assets/`、`/plugins/`；HTML 替换不会改写补丁里的这些针。随后 `/DSH/api` 去掉前缀并把 `Host` 设为 `127.0.0.1:<bind>`，特权方法（`settings.describe`、凭据、主机选择器）才能通过空信任列表的 `isTrustedApiRequest`。HTML 同时注入 `crypto.randomUUID` polyfill，因为浏览器在非安全 HTTP 下不提供该 API。专用发布端口留给内网或之后在安全组放行。`--trusted-host` 列出浏览器可能发送的每一个公网 Host。TLS 隧道必须指向 nginx 发布端口，该改写才会生效。进程用户是 `dsh`；会话数据在 `/opt/dsh/home`。
+[`deploy/`](../../../../deploy/README.md) 是主机叠加层：从 npm 安装已发布的 `@deepseek-ai/dsh` CLI，运行 `dsh web --host 127.0.0.1`，再经 nginx 对外发布。`:80` 的 `server_name` 列出公网 IP（及可选名字），浏览器才能在云安全组已经放行的端口上打开 `http://IP/DSH/`；未匹配的 Host 仍到现有 default_server。IP 虚拟主机上 `/` 与 `/api` 仍是流水/算账，`/finance` 与 `/hermes` 转到那些已有应用。DSH 只挂在 `/DSH/`。官方客户端仍请求站点根上的 `/api`、`/assets/`、`/plugins/`。`/DSH/` 的 HTML 改写覆盖 `src="/assets/`（模块脚本）、`href="/assets/`（样式表与 modulepreload）、`/plugins/` 下的 boot JSON `url`，以及站点根上的 manifest 与 favicon；`/DSH/assets/` 下的 CSS 还会改写 `url(/assets/`，以免 KaTeX 字体落到 IP 虚拟主机根路径。该根路径的 `try_files` 会把未知的 `/assets/*` 做成流水 `index.html`，所以未改写的样式表会以 `200 text/html` 返回，界面没有 CSS。注入的 fetch/WebSocket 补丁仍匹配站点根上的 `/api`、`/assets/`、`/plugins/`；HTML 替换不会改写补丁里的这些针。随后 `/DSH/api` 去掉前缀并把 `Host` 设为 `127.0.0.1:<bind>`，特权方法（`settings.describe`、凭据、主机选择器）才能通过空信任列表的 `isTrustedApiRequest`。HTML 同时注入 `crypto.randomUUID` polyfill，因为浏览器在非安全 HTTP 下不提供该 API。专用发布端口留给内网或之后在安全组放行。`--trusted-host` 列出浏览器可能发送的每一个公网 Host。TLS 隧道必须指向 nginx 发布端口，该改写才会生效。进程用户是 `dsh`；会话数据在 `/opt/dsh/home`。systemd 把 `/opt/dsh/app/node_modules/.bin` 放进 `PATH`，叠加层里 spawn `dsh` 的工具才能解析到同一条 CLI。
+
+`dsh web` 不做 gzip。走 `sub_filter` 的 location 会清掉 `Accept-Encoding`，nginx 才能看到未压缩的响应体。`/DSH/assets/` 与 `/DSH/plugins/` 打开 `proxy_buffering`，`gzip_proxied any` 才能压缩带哈希的 vendor JS 和插件 `client.js`；带哈希的资源还有 `expires 7d`。HTML location 保持不缓冲，以保留 WebSocket 和 SSE。需要设置里的插件市场标签页时，[市场包叠加](2026-08-14-overlay-marketplace-packages.md) 会把选定的已构建 fork 包复制进该 npm 树。
 
 本叠加层不提供认证。在后面加身份代理之前，能连上该 Host 即能访问。Host 改写让仅回环的特权 RPC 在已发布主机名上可达。
 
@@ -28,7 +30,7 @@ fork 需要从公网打开浏览器 UI，同时保持官方 `packages/` 树完�
 
 **替换现有 `:80` default_server。** 不采用：未匹配的 Host 仍须到达流水，IP 虚拟主机上的 `/finance` / `/hermes` 作为反代 location 保留，而不是整台 default_server 换掉。
 
-**在虚拟机上构建整个 monorepo。** 不采用：官方 npm CLI 才是受支持的运行路径，而且该盘装不下完整工作区构建。
+**在虚拟机上构建整个 monorepo。** 不采用：官方 npm CLI 才是受支持的运行路径，而且该盘装不下完整工作区构建。npm tarball 里没有的选定 fork 包改由[市场包叠加](2026-08-14-overlay-marketplace-packages.md)复制进去。
 
 ## Consequences
 
@@ -39,4 +41,4 @@ fork 需要从公网打开浏览器 UI，同时保持官方 `packages/` 树完�
 
 ## Testing
 
-`scripts/dsh-nginx-path-prefix.spec.ts` 把 `/DSH/` HTML 与 `/DSH/assets/` CSS 的 `sub_filter` 列表应用到一份 Vite `index.html` fixture 和一条 KaTeX `@font-face` 规则。它要求样式表与 modulepreload 的 `href="/assets/` 变成 `/DSH/assets/`，要求 CSS 里的 `url(/assets/` 带上同一前缀，并要求注入的 fetch 补丁仍把 `indexOf("/assets/")` 当作站点根上的针。
+`scripts/dsh-nginx-path-prefix.spec.ts` 把 `/DSH/` HTML 与 `/DSH/assets/` CSS 的 `sub_filter` 列表应用到一份 Vite `index.html` fixture 和一条 KaTeX `@font-face` 规则。它要求样式表与 modulepreload 的 `href="/assets/` 变成 `/DSH/assets/`，要求 CSS 里的 `url(/assets/` 带上同一前缀，并要求注入的 fetch 补丁仍把 `indexOf("/assets/")` 当作站点根上的针。它还要求 `gzip on` / `gzip_proxied any`，`/DSH/assets/` 与 `/DSH/plugins/` 打开 `proxy_buffering`，以及 HTML location 保持 `proxy_buffering off`。

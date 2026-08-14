@@ -13,6 +13,7 @@ A host overlay that publishes official `dsh web` on a cloud VM without changing 
 | `systemd/dsh-web.service` | systemd unit; `EnvironmentFile=/opt/dsh/env`. |
 | `bin/start-web.sh` | Runs the official CLI with `--host 127.0.0.1` and `--trusted-host`. |
 | `install.sh` | Creates `dsh`, installs `@deepseek-ai/dsh` from npm, enables nginx and systemd. |
+| `marketplace/install.sh` | Copies built marketplace packages into that npm tree and inserts the two `cordis.yml` rows. |
 
 ## Install
 
@@ -28,7 +29,9 @@ The shipped defaults publish `http://118.145.156.15/DSH/` on `:80` (the port the
 
 ## After boot
 
-Open `http://118.145.156.15/DSH/` in a browser. In **Settings → Models**, paste a DeepSeek API key; the overlay does not require `DEEPSEEK_API_KEY` in the environment. Choose `/opt/dsh/workspace` as the workspace. `http://118.145.156.15/` stays the liushui homepage; `/api` stays suanzhang; `/finance` and `/hermes` stay those apps. The official client still calls origin-root `/api`, `/assets`, and `/plugins`. The `/DSH/` HTML rewrites `src="/assets/`, `href="/assets/` (stylesheets and modulepreload), plugin boot URLs, and the origin-root manifest and favicon, then patches `fetch` / `WebSocket`. CSS under `/DSH/assets/` rewrites `url(/assets/`. It also injects a `crypto.randomUUID` polyfill so the published CLI can run on insecure HTTP. Origin-root `/assets` on this Host is liushui's SPA fallback, so an unrewritten stylesheet is `200 text/html` rather than a 404.
+Open `http://118.145.156.15/DSH/` in a browser. In **Settings → Models**, paste a DeepSeek API key; the overlay does not require `DEEPSEEK_API_KEY` in the environment. Choose `/opt/dsh/workspace` as the workspace. `http://118.145.156.15/` stays the liushui homepage; `/api` stays suanzhang; `/finance` and `/hermes` stay those apps. The official client still calls origin-root `/api`, `/assets`, and `/plugins`. The `/DSH/` HTML rewrites `src="/assets/`, `href="/assets/` (stylesheets and modulepreload), plugin boot URLs, and the origin-root manifest and favicon, then patches `fetch` / `WebSocket`. CSS under `/DSH/assets/` rewrites `url(/assets/`. It also injects a `crypto.randomUUID` polyfill so the published CLI can run on insecure HTTP. Origin-root `/assets` on this Host is liushui's SPA fallback, so an unrewritten stylesheet is `200 text/html` rather than a 404. nginx gzips `/DSH/assets/` and `/DSH/plugins/` after `sub_filter`; hashed assets expire after seven days.
+
+The Settings **插件市场** tab is not in the npm CLI. After `pnpm run build:lib` on a machine that can hold the workspace, copy the four built package directories (`dsh-host-plugin-marketplace`, `dsh-client-ui-settings-plugin-marketplace`, `dsh-api-remotes`, `dsh-client-connection`) to the VM and run `sudo bash deploy/marketplace/install.sh <that-dir>`. Re-running `install.sh` reinstalls npm packages and drops that overlay; run the marketplace script again. Details: [marketplace overlay](../.agents/notes/implemented/process/2026-08-14-overlay-marketplace-packages.md).
 
 Point TLS tunnels (cloudflared, Caddy) at the nginx publish port (`DSH_PUBLISH_PORT`, default `13080`), not at `DSH_BIND_PORT`. A tunnel aimed at `127.0.0.1:3080` skips the Host rewrite, and Settings → Models returns HTTP 403.
 

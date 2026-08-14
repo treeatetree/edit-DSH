@@ -28,7 +28,7 @@ sudo bash deploy/install.sh
 
 ## After boot
 
-用浏览器打开 `http://118.145.156.15/DSH/`。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。`http://118.145.156.15/` 仍是流水首页；`/api` 仍是算账；`/finance` 与 `/hermes` 仍是那些应用。官方客户端仍请求站点根上的 `/api`、`/assets`、`/plugins`；`/DSH/` 的 HTML 会改写这些 URL 并补丁 `fetch` / `WebSocket`。同时注入 `crypto.randomUUID` polyfill，已发布 CLI 才能在非安全 HTTP 下运行。
+用浏览器打开 `http://118.145.156.15/DSH/`。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。`http://118.145.156.15/` 仍是流水首页；`/api` 仍是算账；`/finance` 与 `/hermes` 仍是那些应用。官方客户端仍请求站点根上的 `/api`、`/assets`、`/plugins`。`/DSH/` 的 HTML 会改写 `src="/assets/`、`href="/assets/`（样式表与 modulepreload）、插件 boot URL，以及站点根上的 manifest 与 favicon，并补丁 `fetch` / `WebSocket`。`/DSH/assets/` 下的 CSS 会改写 `url(/assets/`。同时注入 `crypto.randomUUID` polyfill，已发布 CLI 才能在非安全 HTTP 下运行。此 Host 上站点根 `/assets` 是流水 SPA 回退，所以未改写的样式表是 `200 text/html`，而不是 404。
 
 TLS 隧道（cloudflared、Caddy）必须指向 nginx 发布端口（`DSH_PUBLISH_PORT`，默认 `13080`），不要指向 `DSH_BIND_PORT`。隧道直连 `127.0.0.1:3080` 会跳过 Host 改写，设置 → 模型会返回 HTTP 403。
 

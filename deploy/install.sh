@@ -69,7 +69,12 @@ install_nginx() {
       -e "s/__DSH_SERVER_NAME__/$server_name/g" \
       "$root/nginx/dsh-web.conf" >"$dest"
   nginx -t
-  systemctl reload nginx
+  # Prefer a direct HUP of the master: systemd reload can fail on PrivateTmp
+  # namespace setup while the long-running master is still healthy.
+  if ! systemctl reload nginx; then
+    echo "install.sh: systemctl reload nginx failed; sending HUP to the master" >&2
+    nginx -s reload
+  fi
 }
 
 install_unit() {

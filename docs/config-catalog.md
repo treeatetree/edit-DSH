@@ -785,6 +785,40 @@ export interface Config {
 
 Source: [`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
 
+<a id="deepseek-aidsh-host-plugin-marketplace"></a>
+
+## `@deepseek-ai/dsh-host-plugin-marketplace`
+
+```ts config-catalog
+/** Marketplace Host config; every field is settable from cordis.yml. */
+export interface Config {
+  /** GitHub `owner/repo` that supplies the official package tree. */
+  officialRepository: string
+  /** GitHub topic whose public repositories are installable community plugins. */
+  githubTopic: string
+  /** GitHub API origin, without a trailing slash. */
+  githubApiBaseUrl: string
+  /** Git ref used for the official tree and blob URLs. */
+  githubRef: string
+  /** User-Agent GitHub requires on API requests. */
+  githubUserAgent: string
+  /** Optional token; empty string sends unauthenticated requests. */
+  githubToken: string
+  /** Package groups omitted from the official tree catalog. */
+  officialSkipGroups: string[]
+  /** Profile `dsh plugin --profile` mutates. */
+  profile: string
+  /** Milliseconds a catalog snapshot is reused. */
+  catalogCacheMs: number
+  /** Milliseconds `dsh plugin add|remove` may run. */
+  installTimeoutMs: number
+  /** Executable path or PATH name of the `dsh` CLI. */
+  cliPath: string
+}
+```
+
+Source: [`packages/host/plugin-marketplace/src/index.ts:31`](../packages/host/plugin-marketplace/src/index.ts)
+
 <a id="deepseek-aidsh-host-webserver"></a>
 
 ## `@deepseek-ai/dsh-host-webserver`
@@ -3050,6 +3084,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` ([`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` ([`packages/client/ui-settings-plugin-marketplace/src/index.ts`](../packages/client/ui-settings-plugin-marketplace/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-plugins` ([`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-sidebar` ([`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-skill` ([`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts))

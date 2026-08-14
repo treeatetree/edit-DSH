@@ -33,7 +33,7 @@ function config(overrides: Partial<ReturnType<typeof PluginMarketplaceGateway.Co
 }
 
 describe('PluginMarketplaceGateway', () => {
-  it('publishes catalog, install, and remove under pluginMarketplace', async () => {
+  it('publishes catalog, add, and uninstall under pluginMarketplace', async () => {
     const ctx = new Context()
     contexts.push(ctx)
     const home = mkdtempSync(join(tmpdir(), 'dsh-home-'))
@@ -50,8 +50,8 @@ describe('PluginMarketplaceGateway', () => {
     })
     expect(remoteMethods(gateway)).toEqual([
       { method: 'catalog', invocation: { kind: 'direct' } },
-      { method: 'install', invocation: { kind: 'direct' } },
-      { method: 'remove', invocation: { kind: 'direct' } },
+      { method: 'add', invocation: { kind: 'direct' } },
+      { method: 'uninstall', invocation: { kind: 'direct' } },
     ])
   })
 
@@ -99,7 +99,7 @@ describe('PluginMarketplaceGateway', () => {
     const second = await gateway.catalog()
     expect(first).toBe(second)
     expect(fetches).toBe(2)
-    await gateway.install({ spec: 'dsh-hello' })
+    await gateway.add({ spec: 'dsh-hello' })
     await gateway.catalog()
     expect(fetches).toBe(4)
   })
@@ -123,8 +123,8 @@ describe('PluginMarketplaceGateway', () => {
     })
     await gateway.catalog()
     expect(fetches).toBe(2)
-    await gateway.install({ spec: '../x' })
-    await gateway.install({ spec: 'dsh-hello' })
+    await gateway.add({ spec: '../x' })
+    await gateway.add({ spec: 'dsh-hello' })
     await gateway.catalog()
     expect(fetches).toBe(2)
   })
@@ -149,11 +149,11 @@ describe('PluginMarketplaceGateway', () => {
     })
     await gateway.catalog()
     expect(fetches).toBe(2)
-    const missing = await gateway.remove({ packageName: 'missing-pkg' })
+    const missing = await gateway.uninstall({ packageName: 'missing-pkg' })
     expect(missing.ok).toBe(false)
     await gateway.catalog()
     expect(fetches).toBe(2)
-    const removed = await gateway.remove({ packageName: 'dsh-hello' })
+    const removed = await gateway.uninstall({ packageName: 'dsh-hello' })
     expect(removed.ok).toBe(true)
     await gateway.catalog()
     expect(fetches).toBe(4)

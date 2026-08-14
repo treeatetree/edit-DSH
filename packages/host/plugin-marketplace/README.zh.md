@@ -2,9 +2,9 @@
 
 [English](README.md) | 中文
 
-组装插件目录并通过 `dsh plugin` 修改当前 profile 的 Host Remote。`PluginMarketplaceGateway` 注册 `pluginMarketplace` 服务，并发布三条生成的直接 Remote：`pluginMarketplace/catalog`、`pluginMarketplace/install`、`pluginMarketplace/remove`。
+组装插件目录并通过 `dsh plugin` 修改当前 profile 的 Host Remote。`PluginMarketplaceGateway` 注册 `pluginMarketplace` 服务，并发布三条生成的直接 Remote：`pluginMarketplace/catalog`、`pluginMarketplace/add`、`pluginMarketplace/uninstall`。
 
-`catalog` 读取官方 GitHub 仓库中 `packages/<group>/<pkg>/package.json` 的树（只供浏览；这些包已随 CLI 交付），以及公开 GitHub topic 搜索得到的可安装社区仓库，再与 profile 的 `package.json` 依赖合并。GitHub 失败记录在 `sources` 上，不拒绝 RPC。`install` 与 `remove` 用 `execFile` 启动 `dsh plugin --profile <name>`（不经过 shell）。规格只允许注册表名、可选版本/标签，以及 `github:owner/repo[#ref]`；相对路径、`file:`、`link:` 与 shell 元字符一律拒绝。成功的变更会报告 `restartRequired: true`，因为新层要到下一次 Host 进程启动才会被拾取。
+`catalog` 读取官方 GitHub 仓库中 `packages/<group>/<pkg>/package.json` 的树（只供浏览；这些包已随 CLI 交付），以及公开 GitHub topic 搜索得到的可安装社区仓库，再与 profile 的 `package.json` 依赖合并。GitHub 失败记录在 `sources` 上，不拒绝 RPC。`add` 与 `uninstall` 用 `execFile` 启动 `dsh plugin --profile <name>`（不经过 shell）。规格只允许注册表名、可选版本/标签，以及 `github:owner/repo[#ref]`；相对路径、`file:`、`link:` 与 shell 元字符一律拒绝。成功的变更会报告 `restartRequired: true`，因为新层要到下一次 Host 进程启动才会被拾取。
 
 公开 payload 类型位于 `./types`。Typert 生成由 `./typert` 与 `./remote` 导出的 Host 和 Client Remote 产物。该服务仅供 Remote 使用，不声明同进程 Cordis `Context` merge。Client 包通过 [`api-remotes`](../../api/remotes/README.md) 组合消费它。
 

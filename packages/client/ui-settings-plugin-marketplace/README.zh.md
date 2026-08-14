@@ -4,7 +4,7 @@
 
 Web 设置中的 **插件市场** 标签页。浏览器插件注册一个 id 为 `marketplace`、`order: 5` 的本地化 `settings.plugins.tab` 贡献；“插件”分区拥有导航入口与标签栏。插件激活期间不会读取 Remote；首次选择该标签页时才挂载组件，并通过 [`api-remotes`](../../api/remotes/README.md) 懒调用 `ctx.remote.pluginMarketplace.catalog()`。
 
-该标签页列出 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 中的官方包（只浏览），以及 GitHub 上带 `dsh-plugin` topic 的仓库（安装 spec 为 `github:owner/repo`）。安装和卸载走 `pluginMarketplace.install` / `pluginMarketplace.remove`，主机侧执行 `dsh plugin --profile <name>`。文案以中文为准。加载、空结果、无匹配、来源失败与通用失败状态只属于已挂载组件。注册使用 `ctx.slots.inject()`，因此能跟随标签 slot 的延迟声明、重新声明、本地化变化与 teardown，而无需 import 分区拥有方。
+该标签页列出 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 中的官方包（只浏览），以及 GitHub 上带 `dsh-plugin` topic 的仓库（安装 spec 为 `github:owner/repo`）。安装和卸载走 `pluginMarketplace.add` / `pluginMarketplace.uninstall`，主机侧执行 `dsh plugin --profile <name>`。文案以中文为准。加载、空结果、无匹配、来源失败与通用失败状态只属于已挂载组件。注册使用 `ctx.slots.inject()`，因此能跟随标签 slot 的延迟声明、重新声明、本地化变化与 teardown，而无需 import 分区拥有方。
 
 成功的变更会提示需要重启 Web 进程后才会加载新的 profile 层。
 

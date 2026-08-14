@@ -110,8 +110,8 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
    * @param request - validated `dsh plugin add` spec.
    * @returns command outcome; a rejected spec does not spawn.
    */
-  @Remote('install')
-  async install(request: MarketplaceInstallRequest): Promise<MarketplaceMutationResult> {
+  @Remote('add')
+  async add(request: MarketplaceInstallRequest): Promise<MarketplaceMutationResult> {
     const result = await installPlugin({
       cliPath: this.config.cliPath,
       profile: this.config.profile,
@@ -126,8 +126,8 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
    * @param request - exact npm package name.
    * @returns command outcome; unknown names do not spawn.
    */
-  @Remote('remove')
-  async remove(request: MarketplaceRemoveRequest): Promise<MarketplaceMutationResult> {
+  @Remote('uninstall')
+  async uninstall(request: MarketplaceRemoveRequest): Promise<MarketplaceMutationResult> {
     const result = await removePlugin({
       cliPath: this.config.cliPath,
       profile: this.config.profile,

@@ -42,16 +42,16 @@ export function apply(ctx: ClientContext): void {
     return result.value
   }
   const install: PluginMarketplaceSettingsTabInjected['install'] = async (spec) => {
-    const result = await ctx.remote.pluginMarketplace.install({ spec })
+    const result = await ctx.remote.pluginMarketplace.add({ spec })
     if (!result.ok) {
-      throw new Error(`pluginMarketplace.install failed: ${result.error.code}: ${result.error.message}`)
+      throw new Error(`pluginMarketplace.add failed: ${result.error.code}: ${result.error.message}`)
     }
     return result.value
   }
   const remove: PluginMarketplaceSettingsTabInjected['remove'] = async (packageName) => {
-    const result = await ctx.remote.pluginMarketplace.remove({ packageName })
+    const result = await ctx.remote.pluginMarketplace.uninstall({ packageName })
     if (!result.ok) {
-      throw new Error(`pluginMarketplace.remove failed: ${result.error.code}: ${result.error.message}`)
+      throw new Error(`pluginMarketplace.uninstall failed: ${result.error.code}: ${result.error.message}`)
     }
     return result.value
   }

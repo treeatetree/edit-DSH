@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace/catalog`、`pluginMarketplace/install` 和 `pluginMarketplace/remove`。Web“插件”分区由 `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` 贡献第三个 `settings.plugins.tab`（`id: marketplace`，`order: 5`）。
+Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace/catalog`、`pluginMarketplace/add` 和 `pluginMarketplace/uninstall`。Web“插件”分区由 `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` 贡献第三个 `settings.plugins.tab`（`id: marketplace`，`order: 5`）。
 
 `catalog` 合并三个来源，并且不会因为 GitHub 失败而拒绝 RPC：
 
@@ -20,11 +20,11 @@ Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace
 - **社区** — GitHub 仓库搜索 `topic:<githubTopic>`（默认 `dsh-plugin`）。每条命中可安装为 `github:owner/repo`。
 - **已安装** — `$DSH_HOME/profiles/<profile>/package.json` 中的依赖。这些行可以卸载。
 
-`install` 与 `remove` 通过 `execFile` 启动 `dsh plugin --profile <name>`（不经过 shell）。规格只允许注册表名、可选版本/标签，以及 `github:owner/repo[#ref]`。相对路径、`file:`、`link:` 与 shell 元字符在启动前拒绝。成功的变更返回 `restartRequired: true`；正在运行的 Loader 不会热加载新装的 bundle。
+`add` 与 `uninstall` 通过 `execFile` 启动 `dsh plugin --profile <name> add|remove`（不经过 shell）。规格只允许注册表名、可选版本/标签，以及 `github:owner/repo[#ref]`。相对路径、`file:`、`link:` 与 shell 元字符在启动前拒绝。成功的变更返回 `restartRequired: true`；正在运行的 Loader 不会热加载新装的 bundle。
 
 所有随部署变化的选项都是 `Config` 字段，包括 `githubToken`（空字符串表示未认证请求）、`catalogCacheMs`、`installTimeoutMs` 和 `cliPath`。测试在 Gateway 构造函数上注入 `fetcher` 与 `run`；生产使用 `fetch` 和 `runNativeCommand`。
 
-三条 Remote 以 `pluginMarketplace/catalog|install|remove` 加入 `PRIVILEGED_METHODS`（Typert 端点使用 `namespace/method`），因此局域网调用者不能列出 profile 依赖，也不能以 Host 进程用户身份安装包。把 `Host` 改写到回环的 nginx 仍可到达它们。
+三条 Remote 以 `pluginMarketplace/catalog|add|uninstall` 加入 `PRIVILEGED_METHODS`（Typert 端点使用 `namespace/method`；Client namespace Service 保留 `install` 与 `remove`），因此局域网调用者不能列出 profile 依赖，也不能以 Host 进程用户身份安装包。把 `Host` 改写到回环的 nginx 仍可到达它们。
 
 该标签页通过 [插件设置标签页](../architecture/2026-08-11-plugin-settings-tabs.md) 已有的 `settings.plugins.tab` slot 注册，不新增 Settings 导航行。
 

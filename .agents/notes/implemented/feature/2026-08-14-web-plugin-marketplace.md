@@ -12,7 +12,7 @@ The official repository at `deepseek-ai/deepseek-harness` is the harness source,
 
 ## Decision
 
-A Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` publishes `pluginMarketplace/catalog`, `pluginMarketplace/install`, and `pluginMarketplace/remove`. The Web Plugins section contributes a third `settings.plugins.tab` (`id: marketplace`, `order: 5`) from `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace`.
+A Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` publishes `pluginMarketplace/catalog`, `pluginMarketplace/add`, and `pluginMarketplace/uninstall`. The Web Plugins section contributes a third `settings.plugins.tab` (`id: marketplace`, `order: 5`) from `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace`.
 
 `catalog` merges three sources and never rejects the RPC because GitHub failed:
 
@@ -20,11 +20,11 @@ A Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` publishes `pluginMarket
 - **Community** — GitHub repository search `topic:<githubTopic>` (default `dsh-plugin`). Each hit is installable as `github:owner/repo`.
 - **Installed** — dependencies in `$DSH_HOME/profiles/<profile>/package.json`. These rows can be removed.
 
-`install` and `remove` spawn `dsh plugin --profile <name>` through `execFile` (no shell). Specs are restricted to registry names, optional versions/tags, and `github:owner/repo[#ref]`. Relative paths, `file:`, `link:`, and shell metacharacters are refused before spawn. A successful mutation returns `restartRequired: true`; the running Loader does not hot-load a newly added bundle.
+`add` and `uninstall` spawn `dsh plugin --profile <name> add|remove` through `execFile` (no shell). Specs are restricted to registry names, optional versions/tags, and `github:owner/repo[#ref]`. Relative paths, `file:`, `link:`, and shell metacharacters are refused before spawn. A successful mutation returns `restartRequired: true`; the running Loader does not hot-load a newly added bundle.
 
 Every deployment-varying choice is a `Config` field, including `githubToken` (empty string sends unauthenticated requests), `catalogCacheMs`, `installTimeoutMs`, and `cliPath`. Tests inject `fetcher` and `run` on the Gateway constructor; production uses `fetch` and `runNativeCommand`.
 
-The three Remotes join `PRIVILEGED_METHODS` as `pluginMarketplace/catalog|install|remove` (Typert endpoints use `namespace/method`) so a LAN caller cannot list the profile dependencies or install packages as the Host process user. nginx that rewrites `Host` to loopback continues to reach them.
+The three Remotes join `PRIVILEGED_METHODS` as `pluginMarketplace/catalog|add|uninstall` (Typert endpoints use `namespace/method`; `install` and `remove` are reserved on the Client namespace Service) so a LAN caller cannot list the profile dependencies or install packages as the Host process user. nginx that rewrites `Host` to loopback continues to reach them.
 
 The tab registers through the existing `settings.plugins.tab` slot owned by [plugin settings tabs](../architecture/2026-08-11-plugin-settings-tabs.md); it does not add a Settings navigation row.
 

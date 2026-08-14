@@ -44,7 +44,7 @@ async function bench() {
       ok: true,
       value: { ok: true, stdout: '', stderr: '', restartRequired: true },
     })
-  ctx.provide('remote.pluginMarketplace', { catalog, install, remove })
+  ctx.provide('remote.pluginMarketplace', { catalog, add: install, uninstall: remove })
   return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, catalog, install, remove }
 }
 
@@ -83,9 +83,9 @@ describe('ui-settings-plugin-marketplace browser plugin', () => {
     b.catalog.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'unavailable' } })
     await expect(injected.catalog()).rejects.toThrow('pluginMarketplace.catalog failed: REMOTE_ERROR: unavailable')
     b.install.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'denied' } })
-    await expect(injected.install('dsh-hello')).rejects.toThrow('pluginMarketplace.install failed: REMOTE_ERROR: denied')
+    await expect(injected.install('dsh-hello')).rejects.toThrow('pluginMarketplace.add failed: REMOTE_ERROR: denied')
     b.remove.mockResolvedValueOnce({ ok: false, error: { code: 'REMOTE_ERROR', message: 'denied' } })
-    await expect(injected.remove('dsh-hello')).rejects.toThrow('pluginMarketplace.remove failed: REMOTE_ERROR: denied')
+    await expect(injected.remove('dsh-hello')).rejects.toThrow('pluginMarketplace.uninstall failed: REMOTE_ERROR: denied')
     await b.ctx.fiber.dispose()
   })
 

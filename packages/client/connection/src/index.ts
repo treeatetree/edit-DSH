@@ -119,8 +119,8 @@ const PRIVILEGED_METHODS = new Set([
   // Typert endpoints use `namespace/method`. Install/remove spawn `dsh plugin`
   // as this process user; catalog lists GitHub hits and the profile dependencies.
   'pluginMarketplace/catalog',
-  'pluginMarketplace/install',
-  'pluginMarketplace/remove',
+  'pluginMarketplace/add',
+  'pluginMarketplace/uninstall',
 ])
 
 /**

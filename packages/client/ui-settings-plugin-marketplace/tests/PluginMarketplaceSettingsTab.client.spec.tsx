@@ -135,6 +135,10 @@ describe('PluginMarketplaceSettingsTab', () => {
     expect(view.container.querySelector('[data-marketplace-count]')?.textContent).toBe('4')
     expect(screen.getByText(`${en.sourceFailed}: GitHub search HTTP 403`)).toBeTruthy()
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    expect(screen.getByText(en.browseOnly)).toBeTruthy()
+    expect(screen.getByText(en.customSpec)).toBeTruthy()
+    expect(view.container.querySelector('img[src="https://opengraph.githubassets.com/1/acme/dsh-hello"]'))
+      .toBeNull()
 
     const official = screen.getByRole('button', { name: 'plugin-inventory, Official' })
     expect(official.getAttribute('aria-expanded')).toBe('false')
@@ -248,16 +252,18 @@ describe('PluginMarketplaceSettingsTab', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'dsh-hello, Community' }))
     fireEvent.click(cardAction('install'))
-    await waitFor(() => { expect(screen.getByRole('status').textContent).toBe('refusing install spec') })
+    await waitFor(() => { expect(screen.getByRole('status').querySelector('span')?.textContent).toBe('refusing install spec') })
     expect(install).toHaveBeenCalledWith('github:acme/dsh-hello')
+    fireEvent.click(screen.getByRole('button', { name: en.dismissNotice }))
+    expect(screen.queryByRole('status')).toBeNull()
 
     fireEvent.click(cardAction('install'))
-    await waitFor(() => { expect(screen.getByRole('status').textContent).toBe(en.restart) })
+    await waitFor(() => { expect(screen.getByRole('status').querySelector('span')?.textContent).toBe(en.restart) })
     expect(catalog).toHaveBeenCalledTimes(2)
 
     fireEvent.click(await screen.findByRole('button', { name: 'dsh-world, Installed' }))
     fireEvent.click(cardAction('remove'))
-    await waitFor(() => { expect(screen.getByRole('status').textContent).toBe(en.error) })
+    await waitFor(() => { expect(screen.getByRole('status').querySelector('span')?.textContent).toBe(en.error) })
     fireEvent.click(cardAction('remove'))
     expect(await screen.findByRole('button', { name: en.removing })).toBeTruthy()
     await act(async () => { removeDeferred.resolve(SUCCESS) })
@@ -286,7 +292,27 @@ describe('PluginMarketplaceSettingsTab', () => {
     fireEvent.submit(spec.closest('form')!)
     expect(install).toHaveBeenCalledTimes(1)
     await act(async () => { deferred.resolve(SUCCESS) })
-    await waitFor(() => { expect(screen.getByRole('status').textContent).toBe(en.restart) })
+    await waitFor(() => { expect(screen.getByRole('status').querySelector('span')?.textContent).toBe(en.restart) })
+  })
+
+  it('maps a missing-pnpm Host failure to the local diagnostic', async () => {
+    const install = vi.fn<PluginMarketplaceSettingsTabInjected['install']>()
+      .mockResolvedValueOnce({
+        ok: false,
+        code: 'missing-pnpm',
+        message: 'Command failed: /opt/dsh/app/node_modules/.bin/dsh plugin --profile web add dsh-hello',
+        stdout: '',
+        stderr: 'dsh: pnpm not found on PATH',
+      })
+    render(<PluginMarketplaceSettingsTab {...props({ catalog: async () => SNAPSHOT, install })} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'dsh-hello, Community' }))
+    fireEvent.click(cardAction('install'))
+    await waitFor(() => {
+      expect(screen.getByRole('status').querySelector('span')?.textContent).toBe(en.pnpmMissing)
+    })
+    expect(screen.queryByText(/Command failed/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en.dismissNotice }))
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('contains a synchronous Remote failure and ignores a result after unmount', async () => {

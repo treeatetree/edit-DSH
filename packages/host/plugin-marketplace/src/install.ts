@@ -62,11 +62,19 @@ export async function runPluginCommand(
   } catch (error) {
     const stdout = errorHasStdio(error) ? error.stdout : ''
     const stderr = errorHasStdio(error) ? error.stderr : ''
+    const text = `${error instanceof Error ? error.message : ''} ${stderr}`
+    if (/pnpm not found/i.test(text)) {
+      return mutationFailure(
+        'missing-pnpm',
+        'pnpm is not installed on PATH',
+        stdout,
+        stderr,
+      )
+    }
     if (controller.signal.aborted) {
       return mutationFailure('timeout', `dsh plugin ${verb} exceeded ${String(request.timeoutMs)}ms`, stdout, stderr)
     }
-    const message = error instanceof Error ? error.message : `dsh plugin ${verb} failed`
-    return mutationFailure('command-failed', message, stdout, stderr)
+    return mutationFailure('command-failed', `dsh plugin ${verb} failed`, stdout, stderr)
   } finally {
     clearTimeout(timer)
   }

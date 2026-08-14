@@ -8,7 +8,7 @@ import { dirname } from 'node:path'
 import type { MarketplaceSnapshot } from './types.ts'
 
 /** Envelope version; a mismatch discards the file rather than serving it. */
-export const CATALOG_CACHE_VERSION = 1
+export const CATALOG_CACHE_VERSION = 2
 
 /** One catalog snapshot plus the wall-clock instant it becomes stale. */
 export interface CachedCatalog {

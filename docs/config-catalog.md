@@ -806,10 +806,20 @@ export interface Config {
   githubToken: string
   /** Package groups omitted from the official tree catalog. */
   officialSkipGroups: string[]
+  /**
+   * Official tree groups to keep. Empty means every group except
+   * `officialSkipGroups`. The default is profile bundles, not the whole
+   * monorepo `packages/` tree.
+   */
+  officialGroups: string[]
   /** Profile `dsh plugin --profile` mutates. */
   profile: string
   /** Milliseconds a catalog snapshot is reused. */
   catalogCacheMs: number
+  /** When true, reuse `$DSH_HOME/plugin-marketplace-catalog.json` across process starts. */
+  persistCatalog: boolean
+  /** When true, start a catalog fetch as soon as the plugin loads. */
+  prefetchCatalog: boolean
   /** Milliseconds `dsh plugin add|remove` may run. */
   installTimeoutMs: number
   /** Executable path or PATH name of the `dsh` CLI. */
@@ -817,7 +827,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/host/plugin-marketplace/src/index.ts:31`](../packages/host/plugin-marketplace/src/index.ts)
+Source: [`packages/host/plugin-marketplace/src/index.ts:33`](../packages/host/plugin-marketplace/src/index.ts)
 
 <a id="deepseek-aidsh-host-webserver"></a>
 

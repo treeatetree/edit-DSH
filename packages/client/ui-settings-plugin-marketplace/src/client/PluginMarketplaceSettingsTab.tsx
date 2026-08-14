@@ -124,7 +124,7 @@ export function PluginMarketplaceSettingsTab({
     try {
       const result = await action()
       if (!result.ok) {
-        setNotice(result.message)
+        setNotice(result.code === 'missing-pnpm' ? t('pnpmMissing') : result.message)
         return
       }
       setNotice(t('restart'))
@@ -154,7 +154,14 @@ export function PluginMarketplaceSettingsTab({
           <button type="button" onClick={retry}>{t('retry')}</button>
         </div>
       ) : null}
-      {notice !== null ? <p className={css.restart} role="status">{notice}</p> : null}
+      {notice !== null ? (
+        <p className={css.restart} role="status">
+          <span>{notice}</span>
+          <button type="button" className={css.dismiss} onClick={() => { setNotice(null) }}>
+            {t('dismissNotice')}
+          </button>
+        </p>
+      ) : null}
       {state.status === 'ready' ? (
         <div className={css.catalog}>
           <div className={css.chrome} data-marketplace-chrome="true">
@@ -183,17 +190,19 @@ export function PluginMarketplaceSettingsTab({
               ))}
             </div>
             <form className={css.custom} onSubmit={onCustomInstall}>
-              <label className={css.visuallyHidden} htmlFor={`${catalogId}-spec`}>{t('customSpec')}</label>
-              <input
-                id={`${catalogId}-spec`}
-                value={customSpec}
-                placeholder={t('customSpecPlaceholder')}
-                aria-label={t('customSpec')}
-                onChange={(event) => { setCustomSpec(event.currentTarget.value) }}
-              />
-              <button type="submit" disabled={busyId !== null || customSpec.trim().length === 0}>
-                {busyId === 'custom' ? t('installing') : t('customSpecSubmit')}
-              </button>
+              <label className={css.customLabel} htmlFor={`${catalogId}-spec`}>{t('customSpec')}</label>
+              <div className={css.customRow}>
+                <input
+                  id={`${catalogId}-spec`}
+                  value={customSpec}
+                  placeholder={t('customSpecPlaceholder')}
+                  aria-label={t('customSpec')}
+                  onChange={(event) => { setCustomSpec(event.currentTarget.value) }}
+                />
+                <button type="submit" disabled={busyId !== null || customSpec.trim().length === 0}>
+                  {busyId === 'custom' ? t('installing') : t('customSpecSubmit')}
+                </button>
+              </div>
             </form>
           </div>
           <div className={css.sources}>
@@ -225,16 +234,6 @@ export function PluginMarketplaceSettingsTab({
                     data-marketplace-entry={entry.id}
                     data-open={open ? 'true' : undefined}
                   >
-                    {entry.coverUrl !== null && entry.coverUrl.length > 0 ? (
-                      <img
-                        className={css.cover}
-                        src={entry.coverUrl}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        onError={(event) => { event.currentTarget.hidden = true }}
-                      />
-                    ) : null}
                     <button
                       className={css.cardContent}
                       type="button"
@@ -263,6 +262,9 @@ export function PluginMarketplaceSettingsTab({
                       </span>
                       <span className={css.cardTrailing}>
                         <span className={css.configTag} data-origin={entry.origin}>{origin}</span>
+                        {entry.installSpec === null ? (
+                          <span className={css.configTag} data-kind="browse">{t('browseOnly')}</span>
+                        ) : null}
                         {entry.stars !== null ? (
                           <span className={css.metric} title={t('stars')}>{entry.stars}</span>
                         ) : null}
@@ -271,6 +273,16 @@ export function PluginMarketplaceSettingsTab({
                     </button>
                     {open ? (
                       <div className={css.cardDetails} id={detailId}>
+                        {entry.coverUrl !== null && entry.coverUrl.length > 0 ? (
+                          <img
+                            className={css.cover}
+                            src={entry.coverUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            onError={(event) => { event.currentTarget.hidden = true }}
+                          />
+                        ) : null}
                         <dl className={css.details}>
                           {entry.owner !== null ? (
                             <div>

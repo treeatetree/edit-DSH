@@ -21,6 +21,8 @@ export interface CatalogRequest {
   readonly githubRef: string
   readonly githubUserAgent: string
   readonly officialSkipGroups: readonly string[]
+  /** When non-empty, official rows are limited to these package groups. */
+  readonly officialGroups: readonly string[]
   readonly profile: string
   readonly profileDir: string
 }
@@ -240,6 +242,7 @@ export function readInstalledPlugins(profileDir: string): {
  * @param ref - git ref used in blob URLs.
  * @param skipGroups - package groups omitted from the official catalog.
  * @param meta - repository-level avatar and counts shared by every official row.
+ * @param includeGroups - when non-empty, only these groups are kept after skip.
  * @returns browse-only official rows (`installSpec` is null).
  */
 export function parseOfficialTree(
@@ -248,6 +251,7 @@ export function parseOfficialTree(
   ref: string,
   skipGroups: ReadonlySet<string>,
   meta: OfficialRepoMeta | undefined = undefined,
+  includeGroups: ReadonlySet<string> = new Set(),
 ): MarketplacePlugin[] {
   const parsed = JSON.parse(body) as GitHubTreeResponse
   const owner = meta?.owner ?? parseOwnerRepo(repository)?.owner ?? null
@@ -259,6 +263,7 @@ export function parseOfficialTree(
     const group = match[1]
     const pkg = match[2]
     if (skipGroups.has(group)) continue
+    if (includeGroups.size > 0 && !includeGroups.has(group)) continue
     entries.push({
       id: marketplacePluginId(`official:${group}/${pkg}`),
       title: pkg,
@@ -397,6 +402,7 @@ export async function loadCatalog(
 ): Promise<MarketplaceSnapshot> {
   const headers = githubHeaders(request.githubUserAgent, token)
   const skip = new Set(request.officialSkipGroups)
+  const include = new Set(request.officialGroups)
   const installed = readInstalledPlugins(request.profileDir)
   const sources: MarketplaceSourceStatus[] = [installed.source]
   let official: MarketplacePlugin[] = []
@@ -432,7 +438,9 @@ export async function loadCatalog(
     const meta = repoResult.ok
       ? parseOfficialRepo(repoResult.body, request.officialRepository)
       : undefined
-    official = parseOfficialTree(treeResult.body, request.officialRepository, request.githubRef, skip, meta)
+    official = parseOfficialTree(
+      treeResult.body, request.officialRepository, request.githubRef, skip, meta, include,
+    )
     sources.push({ id: 'official', ok: true, message: '' })
   }
 

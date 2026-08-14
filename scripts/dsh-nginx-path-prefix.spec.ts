@@ -49,6 +49,7 @@ function locationBlock(prefix: string): string {
 const htmlLocation = locationBlock('location ^~ /__DSH_HTTP_PATH__/ {')
 const assetsLocation = locationBlock('location ^~ /__DSH_HTTP_PATH__/assets/ {')
 const pluginsLocation = locationBlock('location ^~ /__DSH_HTTP_PATH__/plugins/ {')
+const eventsLocation = locationBlock('location = /__DSH_HTTP_PATH__/plugins/events')
 const htmlFilters = extractSubFilters(htmlLocation)
 const assetFilters = extractSubFilters(assetsLocation)
 
@@ -81,6 +82,8 @@ describe('cloud web /DSH/ nginx path-prefix rewrite', () => {
     expect(rewritten).not.toMatch(/src="\/assets\//)
     expect(rewritten).toContain('x.pathname.indexOf("/assets/")===0')
     expect(rewritten).not.toContain('indexOf("/__DSH_HTTP_PATH__/assets/")')
+    expect(rewritten).toContain('var E=EventSource')
+    expect(rewritten).toContain('window.EventSource=function(u,s)')
   })
 
   it('rewrites KaTeX origin-root font urls in CSS', () => {
@@ -106,5 +109,8 @@ describe('cloud web /DSH/ nginx path-prefix rewrite', () => {
     expect(pluginsLocation).toContain('Accept-Encoding ""')
     expect(pluginsLocation.includes('sub_filter')).toBe(false)
     expect(htmlLocation).toContain('proxy_buffering off')
+    expect(eventsLocation).toContain('proxy_buffering off')
+    expect(eventsLocation).toContain('gzip off')
+    expect(eventsLocation).toContain('proxy_cache off')
   })
 })

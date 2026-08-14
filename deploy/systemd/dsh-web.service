@@ -11,6 +11,7 @@ WorkingDirectory=/opt/dsh/workspace
 EnvironmentFile=/opt/dsh/env
 Environment=HOME=/opt/dsh
 Environment=DSH_HOME=/opt/dsh/home
+# dsh plugin add|remove spawns pnpm from this PATH (corepack shim in /usr/local/bin).
 Environment=PATH=/opt/dsh/app/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 ExecStart=/opt/dsh/bin/start-web.sh
 Restart=on-failure

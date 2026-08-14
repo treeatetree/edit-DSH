@@ -35,6 +35,11 @@ function config(overrides: Partial<ReturnType<typeof PluginMarketplaceGateway.Co
 }
 
 describe('PluginMarketplaceGateway', () => {
+  it('defaults officialGroups to the bundle profile layer', () => {
+    expect(config().officialGroups).toEqual(['bundle'])
+    expect(config({ officialGroups: [] }).officialGroups).toEqual([])
+  })
+
   it('publishes catalog, add, and uninstall under pluginMarketplace', async () => {
     const ctx = new Context()
     contexts.push(ctx)

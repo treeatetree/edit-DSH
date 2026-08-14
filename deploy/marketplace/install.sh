@@ -70,10 +70,81 @@ path.write_text(text)
 PY
 }
 
+ensure_pnpm() {
+  if ! command -v pnpm >/dev/null; then
+    if ! command -v corepack >/dev/null; then
+      echo "marketplace/install.sh: pnpm or corepack is required on PATH" >&2
+      exit 1
+    fi
+    corepack enable
+    corepack prepare pnpm@11.7.0 --activate
+  fi
+  local pnpm_path
+  pnpm_path="$(command -v pnpm)"
+  if [[ -z $pnpm_path ]]; then
+    echo "marketplace/install.sh: pnpm is still missing after corepack enable" >&2
+    exit 1
+  fi
+  if [[ $pnpm_path != /usr/local/bin/pnpm && $pnpm_path != /usr/bin/pnpm ]]; then
+    ln -sf "$pnpm_path" /usr/local/bin/pnpm
+  fi
+}
+
+reload_nginx() {
+  /usr/sbin/nginx -t
+  if ! systemctl reload nginx; then
+    echo "marketplace/install.sh: systemctl reload nginx failed; sending HUP to /run/nginx.pid" >&2
+    if [[ -f /run/nginx.pid ]]; then
+      kill -HUP "$(cat /run/nginx.pid)"
+    else
+      /usr/sbin/nginx -s reload
+    fi
+  fi
+}
+
+refresh_host_overlay() {
+  local deploy_root
+  deploy_root="$(cd "$(dirname "$0")/.." && pwd)"
+  if [[ -f $prefix/env ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    source "$prefix/env"
+    set +a
+  fi
+  local publish_port="${DSH_PUBLISH_PORT:-13080}"
+  local bind_port="${DSH_BIND_PORT:-3080}"
+  local server_name="${DSH_SERVER_NAME:-dsh.118.145.156.15.sslip.io 118.145.156.15}"
+  local http_path="${DSH_HTTP_PATH:-DSH}"
+  if [[ -f $deploy_root/nginx/dsh-web.conf ]]; then
+    if [[ ! $http_path =~ ^[A-Za-z0-9_-]+$ ]]; then
+      echo "marketplace/install.sh: DSH_HTTP_PATH must be one path segment" >&2
+      exit 1
+    fi
+    sed -e "s/__DSH_PUBLISH_PORT__/$publish_port/g" \
+        -e "s/__DSH_BIND_PORT__/$bind_port/g" \
+        -e "s/__DSH_SERVER_NAME__/$server_name/g" \
+        -e "s/__DSH_HTTP_PATH__/$http_path/g" \
+        "$deploy_root/nginx/dsh-web.conf" >/etc/nginx/conf.d/dsh-web.conf
+    reload_nginx
+  fi
+  if [[ -f $deploy_root/systemd/dsh-web.service ]]; then
+    cp "$deploy_root/systemd/dsh-web.service" /etc/systemd/system/dsh-web.service
+    systemctl daemon-reload
+  fi
+}
+
+clear_catalog_cache() {
+  rm -f "$prefix/home/plugin-marketplace-catalog.json"
+}
+
 need_root
 [[ -n $src && -d $src ]] || usage
 [[ -x $cli ]] || { echo "marketplace/install.sh: missing CLI $cli" >&2; exit 1; }
 [[ -d $nm/dsh-web-app ]] || { echo "marketplace/install.sh: missing $nm/dsh-web-app" >&2; exit 1; }
+
+ensure_pnpm
+refresh_host_overlay
+clear_catalog_cache
 
 copy_package "$nm" dsh-host-plugin-marketplace
 copy_package "$nm" dsh-client-ui-settings-plugin-marketplace

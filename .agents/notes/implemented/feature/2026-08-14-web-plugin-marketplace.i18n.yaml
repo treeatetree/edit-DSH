@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-14-web-plugin-marketplace.md
-2026-08-14-web-plugin-marketplace.md: 38e3d7012428c9aacc11b18d7276b37494f8729d
-2026-08-14-web-plugin-marketplace.zh.md: 999b3bb09a9d22d2f0f32c911e62c984974a22cc
+2026-08-14-web-plugin-marketplace.md: af44ecd6b1a2e9113e7d2dec1617504894911d72
+2026-08-14-web-plugin-marketplace.zh.md: 2aa1c0251d89c70bd22446bcb0e7c2b0ab0d0074

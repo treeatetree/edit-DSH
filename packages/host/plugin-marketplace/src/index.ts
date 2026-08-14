@@ -45,6 +45,12 @@ export interface Config {
   githubToken: string
   /** Package groups omitted from the official tree catalog. */
   officialSkipGroups: string[]
+  /**
+   * Official tree groups to keep. Empty means every group except
+   * `officialSkipGroups`. The default is profile bundles, not the whole
+   * monorepo `packages/` tree.
+   */
+  officialGroups: string[]
   /** Profile `dsh plugin --profile` mutates. */
   profile: string
   /** Milliseconds a catalog snapshot is reused. */
@@ -69,6 +75,7 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
     githubUserAgent: z.string().default('deepseek-harness-plugin-marketplace'),
     githubToken: z.string().default(''),
     officialSkipGroups: z.array(z.string()).default(['boot', 'examples', 'test-support', 'typert', 'util']),
+    officialGroups: z.array(z.string()).default(['bundle']),
     profile: z.string().default('web'),
     catalogCacheMs: z.natural().min(0).default(600_000),
     persistCatalog: z.boolean().default(true),
@@ -135,6 +142,7 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
       githubRef: this.config.githubRef,
       githubUserAgent: this.config.githubUserAgent,
       officialSkipGroups: this.config.officialSkipGroups,
+      officialGroups: this.config.officialGroups,
       profile: this.config.profile,
       profileDir: resolveProfileDir(this.config.profile, resolveDshHome()),
     }, this.fetcher, this.config.githubToken === '' ? undefined : this.config.githubToken)

@@ -14,9 +14,9 @@ Status: implemented
 
 `ui-layout` 把 `center.cover` 声明为根级列表 slot，叠在中栏 `conversation` 占位方之上。贡献不得替换 `conversation`；封面是加法的。`shell.overlay` 仍是 toast 和 Cordis 清单所用的整框浮动层。
 
-Host `catalog` 行现在带 `imageUrl`、`coverUrl`、`owner`、`language`、`updatedAt`、`forks` 和 `topics`。社区行从 GitHub 搜索 payload 映射这些字段，再加上 `https://opengraph.githubassets.com/1/{owner}/{repo}`（不再打 API）。官方行在已有 git-tree 读取之外，用一次 `GET /repos/{owner}/{repo}` 复制仓库级星标、语言和所有者头像；不用 monorepo 的 Open Graph 图当每个包的封面。tree、repo 与 topic 搜索并发执行。
+Host `catalog` 行现在带 `imageUrl`、`coverUrl`、`owner`、`language`、`updatedAt`、`forks` 和 `topics`。社区行从 GitHub 搜索 payload 映射这些字段，再加上 `https://opengraph.githubassets.com/1/{owner}/{repo}`（不再打 API）。官方行在已有 git-tree 读取之外，用一次 `GET /repos/{owner}/{repo}` 复制仓库级星标、语言和所有者头像；不用 monorepo 的 Open Graph 图当每个包的封面。封面把 Open Graph 图画在展开后的详情里，而不是折叠卡片的头图。tree、repo 与 topic 搜索并发执行。
 
-`Config.persistCatalog`（默认 true）把目录写到 `$DSH_HOME/plugin-marketplace-catalog.json`，信封版本为 `1`。`Config.prefetchCatalog`（默认 true）在 Host 插件加载时启动 `catalog()`。测试注入 `persist`，并把这两个开关设为 false。成功的 add/uninstall 会清掉内存和磁盘。浏览器插件也会经 Remote 预取，并立刻画出 `lastCatalog`。
+`Config.persistCatalog`（默认 true）把目录写到 `$DSH_HOME/plugin-marketplace-catalog.json`，信封版本为 `2`。`Config.prefetchCatalog`（默认 true）在 Host 插件加载时启动 `catalog()`。测试注入 `persist`，并把这两个开关设为 false。成功的 add/uninstall 会清掉内存和磁盘。浏览器插件也会经 Remote 预取，并立刻画出 `lastCatalog`。
 
 Host RPC 名称、规格拒绝、特权方法回环钉扎和 `restartRequired` 仍以 [Web 插件市场](2026-08-14-web-plugin-marketplace.md) 为准。
 
@@ -34,7 +34,7 @@ Host RPC 名称、规格拒绝、特权方法回环钉扎和 `restartRequired` �
 
 ## 影响
 
-侧栏在设置上方显示 **插件市场**。打开后覆盖对话栏；设置 → 插件不再有市场标签页。目录卡片展示头像，社区/已安装的 GitHub 规格还展示 Open Graph 图。Host 重启后，磁盘缓存会服务到 `catalogCacheMs` 到期。
+侧栏在设置上方显示 **插件市场**。打开后覆盖对话栏；设置 → 插件不再有市场标签页。目录卡片展示头像；社区/已安装的 GitHub 规格在展开后展示 Open Graph 图。Host 重启后，磁盘缓存会服务到 `catalogCacheMs` 到期。
 
 未认证 GitHub 配额仍然适用；额外的 `/repos` 读取是每次官方刷新一次，不是每个包一次。发布市场客户端的 overlay 部署也必须 overlay `ui-layout` 和 `ui-sidebar`，这样 `center.cover` 才存在，触发器才会叠在设置上方。
 

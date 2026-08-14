@@ -55,13 +55,31 @@ describe('dsh plugin mutations', () => {
       'add',
       'dsh-hello',
       run,
-    )).resolves.toEqual(mutationFailure('command-failed', 'pnpm failed', 'out', 'err'))
+    )).resolves.toEqual(mutationFailure('command-failed', 'dsh plugin add failed', 'out', 'err'))
     await expect(runPluginCommand(
       { cliPath: 'dsh', profile: 'web', timeoutMs: 1000 },
       'add',
       'dsh-hello',
       run,
     )).resolves.toEqual(mutationFailure('command-failed', 'dsh plugin add failed'))
+  })
+
+  it('maps a missing pnpm to missing-pnpm without leaking the argv', async () => {
+    const run = vi.fn().mockRejectedValueOnce(Object.assign(
+      new Error('Command failed: /opt/dsh/app/node_modules/.bin/dsh plugin --profile web add dsh-hello'),
+      { stdout: '', stderr: 'dsh: pnpm not found on PATH — install pnpm to manage profile plugins\n' },
+    ))
+    await expect(runPluginCommand(
+      { cliPath: 'dsh', profile: 'web', timeoutMs: 1000 },
+      'add',
+      'dsh-hello',
+      run,
+    )).resolves.toEqual(mutationFailure(
+      'missing-pnpm',
+      'pnpm is not installed on PATH',
+      '',
+      'dsh: pnpm not found on PATH — install pnpm to manage profile plugins\n',
+    ))
   })
 
   it('maps abort to timeout', async () => {

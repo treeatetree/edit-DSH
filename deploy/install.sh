@@ -64,6 +64,26 @@ install_cli() {
   fi
 }
 
+ensure_pnpm() {
+  if ! command -v pnpm >/dev/null; then
+    if ! command -v corepack >/dev/null; then
+      echo "install.sh: pnpm or corepack is required on PATH for plugin marketplace installs" >&2
+      exit 1
+    fi
+    corepack enable
+    corepack prepare pnpm@11.7.0 --activate
+  fi
+  local pnpm_path
+  pnpm_path="$(command -v pnpm)"
+  if [[ -z $pnpm_path ]]; then
+    echo "install.sh: pnpm is still missing after corepack enable" >&2
+    exit 1
+  fi
+  if [[ $pnpm_path != /usr/local/bin/pnpm && $pnpm_path != /usr/bin/pnpm ]]; then
+    ln -sf "$pnpm_path" /usr/local/bin/pnpm
+  fi
+}
+
 install_nginx() {
   if [[ ! $http_path =~ ^[A-Za-z0-9_-]+$ ]]; then
     echo "install.sh: DSH_HTTP_PATH must be one path segment (letters, digits, _ or -)" >&2
@@ -99,6 +119,7 @@ need_root
 ensure_user
 write_env
 install_cli
+ensure_pnpm
 install_nginx
 install_unit
 systemctl --no-pager --full status dsh-web.service || true

@@ -80,6 +80,13 @@ describe('plugin marketplace catalog helpers', () => {
       forks: null,
       topics: [],
     }])
+    expect(parseOfficialTree(JSON.stringify({
+      tree: [
+        { path: 'packages/host/plugin-inventory/package.json', type: 'blob' },
+        { path: 'packages/bundle/web-app/package.json', type: 'blob' },
+      ],
+    }), 'deepseek-ai/deepseek-harness', 'master', skip, undefined, new Set(['bundle']))
+      .map(entry => entry.id)).toEqual(['official:bundle/web-app'])
     expect(parseOfficialTree('{}', 'not-a-repo', 'master', skip)).toEqual([])
     expect(parseOfficialTree(JSON.stringify({
       tree: [{ path: 'packages/host/plugin-inventory/package.json', type: 'blob' }],
@@ -309,6 +316,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: ['boot'],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {
@@ -352,6 +360,37 @@ describe('loadCatalog', () => {
     ])
   })
 
+  it('keeps only configured officialGroups when the include set is non-empty', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dsh-market-'))
+    writeFileSync(join(dir, 'package.json'), '{}')
+    const snapshot = await loadCatalog({
+      officialRepository: 'deepseek-ai/deepseek-harness',
+      githubTopic: 'dsh-plugin',
+      githubApiBaseUrl: 'https://api.example.test',
+      githubRef: 'master',
+      githubUserAgent: 'ua',
+      officialSkipGroups: [],
+      officialGroups: ['bundle'],
+      profile: 'web',
+      profileDir: dir,
+    }, async (url) => {
+      if (url.includes('/git/trees/')) {
+        return {
+          ok: true,
+          status: 200,
+          body: JSON.stringify({
+            tree: [
+              { path: 'packages/host/plugin-inventory/package.json', type: 'blob' },
+              { path: 'packages/bundle/web-app/package.json', type: 'blob' },
+            ],
+          }),
+        }
+      }
+      return { ok: true, status: 200, body: '{"items":[]}' }
+    }, undefined)
+    expect(snapshot.entries.map(entry => entry.id)).toEqual(['official:bundle/web-app'])
+  })
+
   it('applies official repository metadata from the GitHub repo payload', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'dsh-market-'))
     writeFileSync(join(dir, 'package.json'), '{}')
@@ -362,6 +401,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: [],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {
@@ -407,6 +447,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: [],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {
@@ -425,6 +466,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: [],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {
@@ -441,6 +483,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: [],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {
@@ -456,6 +499,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: [],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {
@@ -487,6 +531,7 @@ describe('loadCatalog', () => {
       githubRef: 'master',
       githubUserAgent: 'ua',
       officialSkipGroups: [],
+      officialGroups: [],
       profile: 'web',
       profileDir: dir,
     }, async (url) => {

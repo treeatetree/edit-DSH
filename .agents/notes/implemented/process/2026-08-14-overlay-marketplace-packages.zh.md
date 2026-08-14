@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) 把已经构建好的包树复制进 `/opt/dsh/app/node_modules/@deepseek-ai/`，并往 `dsh-web-app` 的 `cordis.patch.yml` 插入两行。npm CLI 里不存在的那两个包还要放到 `$DSH_HOME/profiles/web/node_modules/@deepseek-ai/`，因为 Loader 导入额外行时的父 URL 是 `$DSH_HOME/profiles/web/`，Node ESM 不会从那里走进 CLI 树。Host 行把 `cliPath` 设成叠加层 CLI，把 `profile` 设成 `web`。systemd 把该 CLI 目录放进 `PATH`，因此默认的 `cliPath: dsh` 也能解析。运维在能放下工作区的机器上构建这些包，再把解压后的目录交给脚本；虚拟机不编译 TypeScript。
+[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) 把已经构建好的包树复制进 `/opt/dsh/app/node_modules/@deepseek-ai/`，并往 `dsh-web-app` 的 `cordis.patch.yml` 插入两行。npm CLI 里不存在的那两个包还要放到 `$DSH_HOME/profiles/web/node_modules/@deepseek-ai/`，因为 Loader 导入额外行时的父 URL 是 `$DSH_HOME/profiles/web/`，Node ESM 不会从那里走进 CLI 树。Host 行把 `cliPath` 设成叠加层 CLI，把 `profile` 设成 `web`。脚本还会把 `pnpm@11.7.0` 放到 PATH 上（corepack，再加 `/usr/local/bin/pnpm`），在同级 `deploy/nginx/dsh-web.conf` 与 `deploy/systemd/dsh-web.service` 存在时复制它们，并删除 `$DSH_HOME/plugin-marketplace-catalog.json`，避免旧信封继续提供过时的 `officialGroups` 默认。systemd PATH 包含 `/usr/local/bin`，因此 `dsh plugin` 能启动 pnpm。运维在能放下工作区的机器上构建这些包，再从含有当前 nginx 与单元文件的检出把解压后的目录交给脚本；虚拟机不编译 TypeScript。
 
 复制的树是 `dsh-host-plugin-marketplace`、`dsh-client-ui-settings-plugin-marketplace`、`dsh-api-remotes`、`dsh-client-connection`、`dsh-client-ui-layout`、`dsh-client-ui-sidebar`、`dsh-client-ui-settings-models` 和 `dsh-client-ui-conversation`。必须替换 remotes，因为浏览器侧 Remote 挂载在该 Client 组合里；替换 connection 是为了把 `pluginMarketplace/catalog|add|uninstall` 钉到与其他特权方法相同的回环 Host 改写上。替换 layout 是为了声明 `center.cover` 以及 compact／split chrome；替换 sidebar 是为了把页脚操作叠在设置上方并绘制 compact 底栏。替换 models 会去掉默认内测声明；替换 conversation 会把输入框抬到该底栏之上（[移动端与折叠屏 Web 外壳](../feature/2026-08-14-mobile-fold-shell.md)，[取消默认内测声明](../feature/2026-08-14-drop-default-welcome-notice.md)）。
 
@@ -30,4 +30,4 @@ Status: implemented
 
 ## Testing
 
-市场 Host 与封面的包测试仍属于那些包。叠加层证据是重启后线上 `/DSH/` 的 boot JSON 列出 `plugin-marketplace` 与 `ui-settings-plugin-marketplace`，以及侧栏入口打开后的对话栏封面。`scripts/dsh-nginx-path-prefix.spec.ts` 不覆盖这次复制。
+市场 Host 与封面的包测试仍属于那些包。叠加层证据是重启后线上 `/DSH/` 的 boot JSON 列出 `plugin-marketplace` 与 `ui-settings-plugin-marketplace`，以及侧栏入口打开后的对话栏封面。`scripts/dsh-nginx-path-prefix.spec.ts` 覆盖 HTML 的 EventSource 补丁以及不缓冲的 `/plugins/events` location。

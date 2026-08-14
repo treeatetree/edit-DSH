@@ -1,0 +1,33 @@
+# Agent Note: Overlay marketplace packages onto the official npm CLI
+
+Status: implemented
+
+English | [中文](2026-08-14-overlay-marketplace-packages.zh.md)
+
+## Problem
+
+The cloud Web overlay runs published `@deepseek-ai/dsh` from npm. The Settings **插件市场** tab lives only in fork packages (`dsh-host-plugin-marketplace`, `dsh-client-ui-settings-plugin-marketplace`, plus the `dsh-api-remotes` mount and `dsh-client-connection` privileged-method list). Those packages are not in the npm tarball, so `/DSH/` cannot show the tab. The VM disk cannot hold a full monorepo build.
+
+## Decision
+
+[`deploy/marketplace/install.sh`](../../../../deploy/marketplace/install.sh) copies four already-built package trees into `/opt/dsh/app/node_modules/@deepseek-ai/` and inserts the two `cordis.patch.yml` rows into `dsh-web-app`. The two packages that do not exist in the npm CLI also go into `$DSH_HOME/profiles/web/node_modules/@deepseek-ai/`, because Loader imports extra rows with parent URL `$DSH_HOME/profiles/web/` and Node ESM does not walk into the CLI tree from there. The Host row sets `cliPath` to the overlay CLI and `profile` to `web`. systemd puts that CLI directory on `PATH` so a default `cliPath: dsh` would also resolve. The operator builds the four packages on a machine that can hold the workspace, then passes the extracted folder to the script; the VM never compiles TypeScript.
+
+The copied trees are `dsh-host-plugin-marketplace`, `dsh-client-ui-settings-plugin-marketplace`, `dsh-api-remotes`, and `dsh-client-connection`. Replacing remotes is required because the browser Remote mount lives in that Client assembly; replacing connection pins `pluginMarketplace/catalog|add|uninstall` to the same loopback Host rewrite as the other privileged methods.
+
+## Alternatives considered
+
+**Build the monorepo on the VM and run the fork CLI.** Rejected: the overlay already rejected a full workspace build, and the remaining disk cannot hold it.
+
+**`dsh plugin add` of a `file:` marketplace bundle.** Rejected as the only step: a profile bundle can insert the two rows, but the Client still would not `$mount` `pluginMarketplace` unless `dsh-api-remotes` is replaced, and the marketplace RPC itself refuses `file:` / `link:` specs.
+
+**Publish the fork packages to npm and bump `DSH_NPM_SPEC`.** Deferred: this overlay must work against the already-installed `0.1.0-rc.6` CLI without a registry of private packages.
+
+## Consequences
+
+- Opening Settings → Plugins → **插件市场** on `http://118.145.156.15/DSH/` uses the fork Host Remote and tab.
+- Re-running `deploy/install.sh` reinstalls the npm CLI and wipes the copied trees; `marketplace/install.sh` must run again afterward.
+- Installing a community plugin still runs that package as user `dsh` after the next process start.
+
+## Testing
+
+Package tests for the marketplace Host and tab remain on those packages. Overlay evidence is a live `/DSH/` boot JSON that lists `plugin-marketplace` and `ui-settings-plugin-marketplace`, plus the Settings tab after restart. `scripts/dsh-nginx-path-prefix.spec.ts` does not cover this copy step.

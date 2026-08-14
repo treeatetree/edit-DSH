@@ -50,6 +50,34 @@ describe('ThemePresenter', () => {
     expect(themeColorMeta()?.content).toBe(LIGHT_THEME_COLOR)
   })
 
+  it('appends viewport-fit=cover on an existing viewport meta and restores it on dispose', () => {
+    const viewport = document.createElement('meta')
+    viewport.name = 'viewport'
+    viewport.content = 'width=device-width, initial-scale=1'
+    document.head.append(viewport)
+    const presenter = new ThemePresenter()
+    presenter.apply(snapshot('light'))
+    expect(viewport.content).toBe('width=device-width, initial-scale=1, viewport-fit=cover')
+    presenter.apply(snapshot('dark'))
+    expect(viewport.content).toBe('width=device-width, initial-scale=1, viewport-fit=cover')
+    presenter.dispose()
+    expect(viewport.content).toBe('width=device-width, initial-scale=1')
+    viewport.remove()
+  })
+
+  it('leaves a viewport-fit declaration untouched', () => {
+    const viewport = document.createElement('meta')
+    viewport.name = 'viewport'
+    viewport.content = 'width=device-width, viewport-fit=cover'
+    document.head.append(viewport)
+    const presenter = new ThemePresenter()
+    presenter.apply(snapshot('light'))
+    expect(viewport.content).toBe('width=device-width, viewport-fit=cover')
+    presenter.dispose()
+    expect(viewport.content).toBe('width=device-width, viewport-fit=cover')
+    viewport.remove()
+  })
+
   it('dark scheme sets root color-scheme, the attribute, and metadata; switching to light updates one node', () => {
     const presenter = new ThemePresenter()
     presenter.apply(snapshot('dark'))

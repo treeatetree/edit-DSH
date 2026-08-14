@@ -18,6 +18,9 @@ export class ThemePresenter {
   private appliedTokens: string[] = []
   /** The single metadata node this presenter inserts and removes. */
   private readonly themeColorMeta: HTMLMetaElement
+  /** Viewport meta this presenter found; content restored on dispose. */
+  private viewportMeta: HTMLMetaElement | undefined
+  private viewportOriginal: string | undefined
 
   /** Create the presenter-owned metadata node before the first snapshot arrives. */
   constructor() {
@@ -48,6 +51,7 @@ export class ThemePresenter {
     }
     this.themeColorMeta.content = getComputedStyle(body).backgroundColor
     if (!this.themeColorMeta.isConnected) document.head.append(this.themeColorMeta)
+    this.ensureViewportFit()
   }
 
   /** Retract root color-scheme, the palette attribute, token variables, and the owned metadata node. */
@@ -58,5 +62,19 @@ export class ThemePresenter {
     for (const name of this.appliedTokens) body.style.removeProperty(name)
     this.appliedTokens = []
     this.themeColorMeta.remove()
+    if (this.viewportMeta !== undefined && this.viewportOriginal !== undefined) {
+      this.viewportMeta.content = this.viewportOriginal
+    }
+  }
+
+  private ensureViewportFit(): void {
+    if (this.viewportMeta !== undefined) return
+    const meta = document.querySelector('meta[name="viewport"]')
+    if (!(meta instanceof HTMLMetaElement)) return
+    this.viewportMeta = meta
+    this.viewportOriginal = meta.content
+    if (!/\bviewport-fit\s*=/.test(meta.content)) {
+      meta.content = `${meta.content}, viewport-fit=cover`
+    }
   }
 }

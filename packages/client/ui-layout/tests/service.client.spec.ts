@@ -14,6 +14,7 @@ function fakePanels(): PanelActions {
     setDetails: vi.fn(),
     toggleSidebar: vi.fn(),
     setNarrow: vi.fn(),
+    setShellPreference: vi.fn(),
     openDetails: vi.fn(),
     closeDetails: vi.fn(),
   }
@@ -28,10 +29,13 @@ describe('LayoutController', () => {
     service.toggleSidebar()
     service.openDetails()
     service.closeDetails()
+    service.setShellPreference('compact')
 
     expect(panels.toggleSidebar).toHaveBeenCalledTimes(1)
     expect(panels.openDetails).toHaveBeenCalledTimes(1)
     expect(panels.closeDetails).toHaveBeenCalledTimes(1)
+    expect(panels.setShellPreference).toHaveBeenCalledOnce()
+    expect(panels.setShellPreference).toHaveBeenCalledWith('compact')
     expect(panels.setSidebar).not.toHaveBeenCalled()
     expect(panels.setDetails).not.toHaveBeenCalled()
   })
@@ -41,6 +45,7 @@ describe('LayoutController', () => {
     expect(() => { service.toggleSidebar() }).toThrow(/panel actions not wired/)
     expect(() => { service.openDetails() }).toThrow(/panel actions not wired/)
     expect(() => { service.closeDetails() }).toThrow(/panel actions not wired/)
+    expect(() => { service.setShellPreference('auto') }).toThrow(/panel actions not wired/)
   })
 
   it('re-attach overwrites the stale action set (entry re-register)', () => {

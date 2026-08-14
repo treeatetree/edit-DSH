@@ -272,6 +272,124 @@
   width: auto;
 }
 
+.compactShell {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0 0 var(--dsh-shell-gutter-bottom, 56px) 0;
+  border: none;
+  padding: 0;
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 32%, transparent);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: absolute;
+  top: 0;
+  bottom: var(--dsh-shell-gutter-bottom, 56px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  padding: 6px var(--dsh-sidebar-inline-padding, 12px);
+  box-sizing: border-box;
+  background: var(--dsw-specific-sidebar-fill);
+  color: var(--dsw-alias-label-primary);
+  border-right: 1px solid var(--dsw-alias-border-l1);
+  pointer-events: auto;
+}
+
+.compactNav {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 6;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 2px;
+  min-height: 56px;
+  padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  background: var(--dsw-specific-sidebar-fill);
+  border-top: 1px solid var(--dsw-alias-border-l1);
+  pointer-events: auto;
+}
+
+.navItem,
+.navSlot {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.navItem {
+  border: none;
+  padding: 4px 2px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 14px;
+  cursor: pointer;
+}
+
+.navItem[aria-pressed='true'] {
+  color: var(--dsw-alias-interactive-primary);
+}
+
+.navSlot :global(button) {
+  width: 100%;
+  margin: 0;
+  height: auto;
+  border-radius: 8px;
+}
+
+.layoutSwitch {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% + 8px);
+  height: 34px;
+  margin: 4px -4px 4px;
+  padding: 6px 2px 6px 10px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.layoutSwitch:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.layoutSwitchRail {
+  width: 36px;
+  height: 36px;
+  margin: 8px 0 4px;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wide,
   .fading > *,

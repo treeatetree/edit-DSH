@@ -10,6 +10,7 @@
  */
 import type { BoundActions } from '@deepseek-ai/dsh-client-ui-slots'
 import type { createLayoutStore } from './stores.ts'
+import type { ShellPreference } from './shell-mode.ts'
 
 /** The layout store's bound action set (framework-baked, draft params peeled). */
 export type PanelActions = BoundActions<ReturnType<typeof createLayoutStore>>
@@ -27,6 +28,11 @@ export interface ILayout {
   openDetails(): void
   /** Close the details panel. */
   closeDetails(): void
+  /**
+   * Store compact/desktop/auto chrome; `auto` follows viewport and fold segments.
+   * @param preference - stored override, or `auto` to follow the viewport.
+   */
+  setShellPreference(preference: ShellPreference): void
 }
 
 /** Cross-plugin panel-action face (ctx.layout). */
@@ -57,6 +63,14 @@ export class LayoutController implements ILayout {
   /** Close the details panel. */
   closeDetails(): void {
     this.#require().closeDetails()
+  }
+
+  /**
+   * Store compact/desktop/auto chrome; `auto` follows viewport and fold segments.
+   * @param preference - stored override, or `auto` to follow the viewport.
+   */
+  setShellPreference(preference: ShellPreference): void {
+    this.#require().setShellPreference(preference)
   }
 
   #require(): PanelActions {

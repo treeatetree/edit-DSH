@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PluginMarketplacePanel, type PluginMarketplacePanelProps } from '../src/client/PluginMarketplacePanel.tsx'
-import { PluginMarketplaceTrigger } from '../src/client/PluginMarketplaceTrigger.tsx'
+import { PluginMarketplaceTrigger, type PluginMarketplaceTriggerProps } from '../src/client/PluginMarketplaceTrigger.tsx'
 import { createMarketplaceViewStore } from '../src/client/view-store.ts'
 import { en, type PluginMarketplaceLocaleKey } from '../src/client/locales.ts'
 
@@ -10,6 +10,18 @@ afterEach(cleanup)
 
 const t = ((key: PluginMarketplaceLocaleKey): string => en[key]) as PluginMarketplacePanelProps['t']
 const EMPTY = { entries: [], sources: [], profile: 'web' }
+
+function triggerProps(
+  overrides: Pick<PluginMarketplaceTriggerProps, 'wide' | 'view'>,
+): PluginMarketplaceTriggerProps {
+  return { t, ...overrides } as PluginMarketplaceTriggerProps
+}
+
+function panelProps(
+  overrides: Pick<PluginMarketplacePanelProps, 'view' | 'catalog' | 'install' | 'remove'>,
+): PluginMarketplacePanelProps {
+  return { t, lastCatalog: () => undefined, ...overrides } as PluginMarketplacePanelProps
+}
 
 describe('marketplace view store', () => {
   it('toggles, ignores redundant open/close, and unsubscribes', () => {
@@ -38,13 +50,14 @@ describe('PluginMarketplaceTrigger and Panel', () => {
     const catalog = vi.fn(async () => EMPTY)
     render(
       <>
-        <PluginMarketplaceTrigger wide={true} view={view} t={t} />
+        <PluginMarketplaceTrigger {...triggerProps({ wide: true, view })} />
         <PluginMarketplacePanel
-          view={view}
-          catalog={catalog}
-          install={async () => ({ ok: true, stdout: '', stderr: '', restartRequired: true })}
-          remove={async () => ({ ok: true, stdout: '', stderr: '', restartRequired: true })}
-          t={t}
+          {...panelProps({
+            view,
+            catalog,
+            install: async () => ({ ok: true, stdout: '', stderr: '', restartRequired: true }),
+            remove: async () => ({ ok: true, stdout: '', stderr: '', restartRequired: true }),
+          })}
         />
       </>,
     )
@@ -68,7 +81,7 @@ describe('PluginMarketplaceTrigger and Panel', () => {
 
   it('renders the rail trigger without a visible label', () => {
     const view = createMarketplaceViewStore()
-    render(<PluginMarketplaceTrigger wide={false} view={view} t={t} />)
+    render(<PluginMarketplaceTrigger {...triggerProps({ wide: false, view })} />)
     const trigger = screen.getByRole('button', { name: en.tab })
     expect(trigger.textContent).toBe('')
     fireEvent.click(trigger)

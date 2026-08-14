@@ -51,7 +51,7 @@ export function apply(ctx: ClientContext): void {
 
   const t = ctx.locale.bind(NS)
   const view = createMarketplaceViewStore()
-  let lastSnapshot: Awaited<PluginMarketplacePanelInjected['catalog']> | undefined
+  let lastSnapshot: Awaited<ReturnType<PluginMarketplacePanelInjected['catalog']>> | undefined
 
   const catalog: PluginMarketplacePanelInjected['catalog'] = async () => refreshCatalog()
   const refreshCatalog = async (): ReturnType<PluginMarketplacePanelInjected['catalog']> => {

@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import { IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarketplaceSnapshot } from '@deepseek-ai/dsh-api-remotes/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import {
@@ -12,6 +13,7 @@ import css from './PluginMarketplacePanel.module.css'
 /** Injected face for the conversation-column marketplace cover. */
 export interface PluginMarketplacePanelInjected extends PluginMarketplaceSettingsTabInjected {
   view: MarketplaceViewStore
+  lastCatalog: () => MarketplaceSnapshot | undefined
 }
 
 /** Full panel props assembled by the center-cover slot. */

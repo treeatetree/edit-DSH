@@ -1,0 +1,39 @@
+# Cloud Web overlay
+
+English | [中文](README.zh.md)
+
+A host overlay that publishes official `dsh web` on a cloud VM without changing `packages/`. The CLI still binds `127.0.0.1`; nginx reverse-proxies a public Host, and `--trusted-host` lists that Host for the `/api` browser-trust fence ([web bind](../.agents/notes/implemented/feature/2026-07-22-web-bind-address.md), [CLI](../apps/cli/reference/README.md)).
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `env.example` | Template for `/opt/dsh/env` (Host names, ports, npm spec). |
+| `nginx/dsh-web.conf` | nginx vhost: named `:80` Host plus a dedicated publish port. |
+| `systemd/dsh-web.service` | systemd unit; `EnvironmentFile=/opt/dsh/env`. |
+| `bin/start-web.sh` | Runs the official CLI with `--host 127.0.0.1` and `--trusted-host`. |
+| `install.sh` | Creates `dsh`, installs `@deepseek-ai/dsh` from npm, enables nginx and systemd. |
+
+## Install
+
+On the VM, as root, from a checkout of this overlay:
+
+```sh
+sudo bash deploy/install.sh
+```
+
+`install.sh` does not replace `/opt/dsh/env` once that file exists. Edit Host names there, then `systemctl restart dsh-web` and, if the nginx template changed, re-run `install.sh` after moving `/etc/nginx/conf.d/dsh-web.conf` aside.
+
+The shipped defaults assume public IP `118.145.156.15`, publish port `13080`, and `dsh.118.145.156.15.sslip.io` (sslip.io answers that name with the same A record). Point a real DNS name at the VM, set `DSH_SERVER_NAME` / `DSH_PUBLIC_HOST` to that name, and reload nginx plus `dsh-web`.
+
+## After boot
+
+Open the named Host in a browser. In **Settings → Models**, paste a DeepSeek API key; the overlay does not require `DEEPSEEK_API_KEY` in the environment. Choose `/opt/dsh/workspace` as the workspace.
+
+This overlay does not add authentication. Anyone who can reach the published Host can drive the agent, including shell and filesystem tools under the process user `dsh`. Keep the Host off the public internet, or put an identity-aware proxy in front, before treating it as a shared product.
+
+## Known Limitations and Deferred Work
+
+- **Official CLI still rejects `--host 0.0.0.0`.** Publication is nginx (or another reverse proxy), not a loop change.
+- **Port 80 on this host already serves other apps.** The overlay adds a `server_name` vhost and a dedicated publish port instead of taking the default_server `/` or `/api` locations.
+- **TLS is not terminated here.** Put certificates on nginx or a tunnel when the Host must be HTTPS; add that Host (without a port when it is 443) to `DSH_PUBLIC_HOST` / `DSH_EXTRA_HOSTS`.

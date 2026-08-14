@@ -133,6 +133,31 @@ describe('PluginMarketplaceGateway', () => {
     expect(fetches).toBe(3)
   })
 
+  it('leaves a newer in-flight refresh in place when an older catalog settles after dropCache', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    const home = mkdtempSync(join(tmpdir(), 'dsh-home-'))
+    mkdirSync(join(home, 'profiles', 'web'), { recursive: true })
+    writeFileSync(join(home, 'profiles', 'web', 'package.json'), '{}')
+    vi.stubEnv('DSH_HOME', home)
+    let fetches = 0
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const gateway = new PluginMarketplaceGateway(ctx, config(), {
+      fetcher: async () => {
+        fetches += 1
+        await gate
+        return { ok: true, status: 200, body: '{"tree":[],"items":[]}' }
+      },
+      run: async () => ({ stdout: 'ok', stderr: '' }),
+    })
+    const pending = gateway.catalog()
+    await gateway.add({ spec: 'dsh-hello' })
+    release()
+    await expect(pending).resolves.toMatchObject({ profile: 'web' })
+    expect(fetches).toBe(3)
+  })
+
   it('keeps the catalog cache after a refused or failed install', async () => {
     const ctx = new Context()
     contexts.push(ctx)

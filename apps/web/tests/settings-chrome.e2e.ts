@@ -24,6 +24,7 @@ import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/settings-chrome', import.meta.url))
 const DIALOG_EXPECTED = join(SNAPSHOT_DIR, 'dialog.expected.md')
 const PLUGINS_EXPECTED = join(SNAPSHOT_DIR, 'plugins.expected.md')
+const MARKETPLACE_EXPECTED = join(SNAPSHOT_DIR, 'marketplace.expected.md')
 const PLUGIN_ROW_SELECTOR = '[data-plugin-entry$="ui-settings"]'
 const MODE = webSnapshotMode()
 
@@ -118,6 +119,44 @@ describe('web e2e: settings modal and General preferences', () => {
       scaffold.workspaceCwd,
     )
     await compareOrRefreshGolden(PLUGINS_EXPECTED, pluginsSnapshot, MODE)
+    await page.route('**/api/pluginMarketplace/catalog', async (route) => {
+      const envelope = route.request().postDataJSON() as {
+        rpcId: string
+        payload: Record<string, unknown>
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'server-response',
+          rpcId: envelope.rpcId,
+          result: {
+            ok: true,
+            value: {
+              entries: [],
+              sources: [
+                { id: 'official', ok: true, message: '' },
+                { id: 'community', ok: true, message: '' },
+                { id: 'installed', ok: true, message: '' },
+              ],
+              profile: 'web',
+            },
+          },
+        }),
+      })
+    })
+    await dialog.getByRole('tab', { name: '插件市场', exact: true }).click()
+    const marketplaceChrome = dialog.locator('[data-marketplace-chrome]')
+    await marketplaceChrome.waitFor({ timeout: 10_000 })
+    expect(await dialog.getByRole('tab', { name: '插件市场', exact: true }).getAttribute('aria-selected')).toBe('true')
+    expect(await marketplaceChrome.getByRole('searchbox', { name: '搜索插件' }).count()).toBe(1)
+    const marketplaceSnapshot = await captureStableAria(
+      page,
+      '[data-marketplace-chrome]',
+      scaffold.workspaceCwd,
+    )
+    await compareOrRefreshGolden(MARKETPLACE_EXPECTED, marketplaceSnapshot, MODE)
+    await page.unroute('**/api/pluginMarketplace/catalog')
     // Close path 1: Escape.
     await page.keyboard.press('Escape')
     await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
@@ -480,6 +519,6 @@ describe('web e2e: settings modal and General preferences', () => {
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['dialog.expected.md', 'plugins.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['dialog.expected.md', 'plugins.expected.md', 'marketplace.expected.md'])
   })
 })

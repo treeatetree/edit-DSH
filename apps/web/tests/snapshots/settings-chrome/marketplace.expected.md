@@ -1,0 +1,10 @@
+- text: 搜索插件
+- searchbox "搜索插件"
+- group "插件市场":
+  - button "全部" [pressed]
+  - button "官方"
+  - button "社区"
+  - button "已安装"
+- text: 按规格安装
+- textbox "按规格安装"
+- button "安装" [disabled]

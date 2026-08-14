@@ -177,6 +177,7 @@ describe('connection node half', () => {
       // reconnaissance, and copy/remove/openDocument manage the roster and
       // drive the host desktop.
       'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
+      'pluginMarketplace/catalog', 'pluginMarketplace/install', 'pluginMarketplace/remove',
     ]) {
       const denied = fakeResponse()
       await routes[0]!.handler(
@@ -471,6 +472,7 @@ describe('connection node half over a real HTTP server', () => {
         // URL the caller picked: an anonymous LAN caller must not reach it.
         'llm.discoverModels',
         'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
+        'pluginMarketplace/catalog', 'pluginMarketplace/install', 'pluginMarketplace/remove',
       ]) {
         expect([method, await call(port, method, 'harness.example')]).toEqual([method, 403])
       }

@@ -21,18 +21,28 @@ afterEach(() => {
 // props share; stub them as never-called functions.
 const neverHook = (() => { throw new Error('shell must not read global hooks') }) as never
 
-function mountShell({ collapsed = false, width = 300 }: { collapsed?: boolean; width?: number } = {}) {
+function mountShell({
+  collapsed = false, width = 300, presentation = 'column' as 'column' | 'drawer',
+  nextPreference,
+}: { collapsed?: boolean; width?: number; presentation?: 'column' | 'drawer'; nextPreference?: SidebarRootComponentProps['nextPreference'] } = {}) {
   const startSession = vi.fn()
   const toggleSidebar = vi.fn()
+  const setShellPreference = vi.fn()
   let regionOwner: SidebarSectionOwnerProps | undefined
   let settingsOwner: SidebarSettingsOwnerProps | undefined
   let footerActionOwner: SidebarFooterActionOwnerProps | undefined
-  let current = { collapsed, width }
+  const drawer = presentation === 'drawer'
+  let current = {
+    collapsed, width, presentation,
+    nextPreference: nextPreference ?? (drawer ? 'desktop' : 'compact'),
+  }
   const root = () => (
     <SidebarRoot
-      collapsed={current.collapsed} width={current.width}
+      collapsed={current.collapsed} width={current.width} presentation={current.presentation}
+      shellPreference="auto" shellMode={drawer ? 'compact' : 'desktop'}
+      nextPreference={current.nextPreference}
       useSessions={neverHook} useWorkspaces={neverHook}
-      startSession={startSession} toggleSidebar={toggleSidebar} t={t}
+      startSession={startSession} toggleSidebar={toggleSidebar} setShellPreference={setShellPreference} t={t}
       renderSlot={((
         key: string,
         owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
@@ -54,6 +64,7 @@ function mountShell({ collapsed = false, width = 300 }: { collapsed?: boolean; w
   return {
     startSession,
     toggleSidebar,
+    setShellPreference,
     regionOwner: () => {
       if (regionOwner === undefined) throw new Error('region owner not rendered')
       return regionOwner
@@ -115,5 +126,80 @@ describe('SidebarRoot shell', () => {
     const b = mountShell({ collapsed: true })
     expect(b.regionOwner().wide).toBe(false)
     expect(screen.getByRole('button', { name: 'Open sidebar' })).toBeTruthy()
+  })
+
+  it('labels the switch with the automatic layout copy', () => {
+    render(
+      <SidebarRoot
+        collapsed={false} width={300} presentation="column"
+        shellPreference="auto" shellMode="desktop" nextPreference="auto"
+        useSessions={neverHook} useWorkspaces={neverHook}
+        startSession={vi.fn()} toggleSidebar={vi.fn()} setShellPreference={vi.fn()} t={t}
+        renderSlot={((() => <div />) as SidebarRootComponentProps['renderSlot'])}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Switch layout' }).title).toBe('Automatic layout')
+  })
+
+  it('cycles the stored chrome from the footer switch', () => {
+    const b = mountShell()
+    fireEvent.click(screen.getByRole('button', { name: 'Switch layout' }))
+    expect(b.setShellPreference).toHaveBeenCalledWith('compact')
+  })
+})
+
+describe('SidebarRoot compact drawer', () => {
+  it('paints the bottom nav while the session list stays closed', () => {
+    mountShell({ presentation: 'drawer', collapsed: true, width: 320 })
+    expect(screen.getByRole('navigation', { name: 'Sessions' })).toBeTruthy()
+    expect(screen.queryByTestId('region')).toBeNull()
+  })
+
+  it('opens the session list, closes on Escape, and starts a session from the drawer brand', () => {
+    const b = mountShell({ presentation: 'drawer', collapsed: false, width: 320 })
+    expect(screen.getByTestId('region')).toBeTruthy()
+    b.regionOwner().expandSidebar()
+    expect(b.toggleSidebar).not.toHaveBeenCalled()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(b.toggleSidebar).toHaveBeenCalledOnce()
+    const starters = screen.getAllByRole('button', { name: 'New session' })
+    fireEvent.click(starters[0]!)
+    expect(b.startSession).toHaveBeenCalledOnce()
+    expect(b.toggleSidebar).toHaveBeenCalledTimes(2)
+    const closers = screen.getAllByRole('button', { name: 'Collapse sidebar' })
+    expect(closers).toHaveLength(2)
+    fireEvent.click(closers[0]!)
+    fireEvent.click(closers[1]!)
+    expect(b.toggleSidebar).toHaveBeenCalledTimes(4)
+  })
+
+  it('starts a session from the compact nav without opening the drawer', () => {
+    const b = mountShell({ presentation: 'drawer', collapsed: true, width: 320 })
+    fireEvent.click(screen.getByRole('button', { name: 'New session' }))
+    expect(b.startSession).toHaveBeenCalledOnce()
+    expect(b.toggleSidebar).not.toHaveBeenCalled()
+  })
+
+  it('toggles the drawer from the sessions nav item and ignores unrelated keys', () => {
+    const b = mountShell({ presentation: 'drawer', collapsed: false, width: 320 })
+    fireEvent.keyDown(document, { key: 'Enter' })
+    expect(b.toggleSidebar).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Sessions' }))
+    expect(b.toggleSidebar).toHaveBeenCalledOnce()
+  })
+
+  it('uses an explicit nextPreference on the compact layout switch', () => {
+    const setShellPreference = vi.fn()
+    render(
+      <SidebarRoot
+        collapsed={true} width={320} presentation="drawer"
+        shellPreference="auto" shellMode="compact" nextPreference="desktop"
+        useSessions={neverHook} useWorkspaces={neverHook}
+        startSession={vi.fn()} toggleSidebar={vi.fn()} setShellPreference={setShellPreference} t={t}
+        renderSlot={((() => <div />) as SidebarRootComponentProps['renderSlot'])}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Switch layout' }))
+    expect(setShellPreference).toHaveBeenCalledWith('desktop')
   })
 })

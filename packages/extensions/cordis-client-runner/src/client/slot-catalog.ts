@@ -122,7 +122,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'center.cover\', () => ctx.slots.register(\n      { name: \'center.cover\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:72',
+    source: 'packages/client/ui-layout/src/client/index.ts:79',
   },
   {
     key: 'conversation',
@@ -153,7 +153,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation\', () => ctx.slots.register(\n      { name: \'conversation\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:62',
+    source: 'packages/client/ui-layout/src/client/index.ts:69',
   },
   {
     key: 'conversation.chat.assistant-actions',
@@ -1091,7 +1091,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'details\', () => ctx.slots.register(\n      { name: \'details\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:82',
+    source: 'packages/client/ui-layout/src/client/index.ts:89',
   },
   {
     key: 'root',
@@ -1304,7 +1304,6 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'sidebar.settings\' (client-ui-settings-general), so it exists while that entry is mounted',
     occupants: [
-      'client-ui-settings-models WelcomeNotice id \'welcome-notice\'',
       'client-ui-settings-models DeepSeekOnboardingDialog id \'deepseek-official\'',
     ],
     replaceRisk: 'none',
@@ -1517,19 +1516,22 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'shell.overlay\', () => ctx.slots.register(\n      { name: \'shell.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:93',
+    source: 'packages/client/ui-layout/src/client/index.ts:100',
   },
   {
     key: 'sidebar',
     kind: 'single',
     scope: 'root',
-    summary: 'The whole left column.',
-    doc: 'The whole left column. OCCUPIED by ui-sidebar\'s SidebarRoot, which\ndeclares the workspace and settings seats inside it — registering here\nreplaces the navigation column outright rather than adding to it, and\nthe seats it declares disappear with it. To add something to the\nsidebar, register into one of those inner seats instead.\n\nThe occupant receives the frame\'s live column state (collapsed, width)\nand is expected to render the compact control rail while collapsed.',
+    summary: 'The whole left column, or a compact overlay drawer plus bottom nav.',
+    doc: 'The whole left column, or a compact overlay drawer plus bottom nav.\nOCCUPIED by ui-sidebar\'s SidebarRoot, which declares the workspace and\nsettings seats inside it — registering here replaces the navigation\ncolumn outright rather than adding to it, and the seats it declares\ndisappear with it. To add something to the sidebar, register into one\nof those inner seats instead.\n\nThe occupant receives the frame\'s live column state (collapsed, width,\npresentation, shellPreference, shellMode) and is expected to render the\ncompact control rail while collapsed on desktop, or the bottom nav plus\ndrawer while `presentation` is `drawer`.',
     registerOptions: [],
     ownerProps: [
-      '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (the column renders the compact control rail). */\n  collapsed: boolean\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */\n  width: number\n}',
+      '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (rail, or compact drawer hidden). */\n  collapsed: boolean\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed on desktop). */\n  width: number\n  /** `drawer` paints compact bottom nav plus an overlay session list. */\n  presentation: \'column\' | \'drawer\'\n  /** Stored chrome override. */\n  shellPreference: import(\'./shell-mode.ts\').ShellPreference\n  /** Painted chrome after auto/forced resolution. */\n  shellMode: import(\'./shell-mode.ts\').ShellMode\n  /** Preference a layout-switch click will store; skips a no-op auto/forced twin. */\n  nextPreference: import(\'./shell-mode.ts\').ShellPreference\n}',
     ],
-    ownerPropsReferences: [],
+    ownerPropsReferences: [
+      'ShellMode',
+      'ShellPreference',
+    ],
     standardProps: [
       'useSessions: SnapshotSelectorHook<SessionListState>',
       'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
@@ -1543,7 +1545,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar\', () => ctx.slots.register(\n      { name: \'sidebar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-layout/src/client/index.ts:49',
+    source: 'packages/client/ui-layout/src/client/index.ts:56',
   },
   {
     key: 'sidebar.footer.action',

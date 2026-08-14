@@ -22,6 +22,10 @@ import { ThemePresenter } from './theme-presenter.ts'
 // against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.ts'
 export type { ILayout } from './service.ts'
+export type { ShellMode, ShellPreference } from './shell-mode.ts'
+export {
+  nextDistinctShellPreference, nextShellPreference, parseShellPreference,
+} from './shell-mode.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -36,16 +40,19 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     // there); these are the frame's children, declared by the same
     // register() call that contributes AppFrame. Session owners never pass
     // sessionId: the framework injects it as a standard prop.
-    /**
-     * The whole left column. OCCUPIED by ui-sidebar's SidebarRoot, which
-     * declares the workspace and settings seats inside it — registering here
-     * replaces the navigation column outright rather than adding to it, and
-     * the seats it declares disappear with it. To add something to the
-     * sidebar, register into one of those inner seats instead.
-     *
-     * The occupant receives the frame's live column state (collapsed, width)
-     * and is expected to render the compact control rail while collapsed.
-     */
+  /**
+   * The whole left column, or a compact overlay drawer plus bottom nav.
+   * OCCUPIED by ui-sidebar's SidebarRoot, which declares the workspace and
+   * settings seats inside it — registering here replaces the navigation
+   * column outright rather than adding to it, and the seats it declares
+   * disappear with it. To add something to the sidebar, register into one
+   * of those inner seats instead.
+   *
+   * The occupant receives the frame's live column state (collapsed, width,
+   * presentation, shellPreference, shellMode) and is expected to render the
+   * compact control rail while collapsed on desktop, or the bottom nav plus
+   * drawer while `presentation` is `drawer`.
+   */
     'sidebar': { kind: 'single'; scope: 'root'; owner: SidebarOwnerProps }
     /**
      * The whole center column, across both the no-session hero and a live
@@ -102,10 +109,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Sidebar owner share: live column state from the frame's concession solve. */
 export interface SidebarOwnerProps {
-  /** True when the sidebar is closed (the column renders the compact control rail). */
+  /** True when the sidebar is closed (rail, or compact drawer hidden). */
   collapsed: boolean
-  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
+  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed on desktop). */
   width: number
+  /** `drawer` paints compact bottom nav plus an overlay session list. */
+  presentation: 'column' | 'drawer'
+  /** Stored chrome override. */
+  shellPreference: import('./shell-mode.ts').ShellPreference
+  /** Painted chrome after auto/forced resolution. */
+  shellMode: import('./shell-mode.ts').ShellMode
+  /** Preference a layout-switch click will store; skips a no-op auto/forced twin. */
+  nextPreference: import('./shell-mode.ts').ShellPreference
 }
 
 /** Conversation owner share: business state and actions belong to the registrant. */

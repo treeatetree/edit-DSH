@@ -46,6 +46,26 @@ class ResizeObserverStub {
 }
 
 let frameWidth = 1920
+let mediaFlags = { dualSegment: false, coarsePointer: false }
+const mediaListeners = new Set<() => void>()
+
+function installMatchMedia(): void {
+  mediaListeners.clear()
+  window.matchMedia = ((query: string) => ({
+    get matches() {
+      if (query.includes('horizontal-viewport-segments: 2')) return mediaFlags.dualSegment
+      if (query.includes('(pointer: coarse)')) return mediaFlags.coarsePointer
+      return false
+    },
+    media: query,
+    onchange: null,
+    addEventListener: (_type: string, listener: EventListener) => { mediaListeners.add(listener as () => void) },
+    removeEventListener: (_type: string, listener: EventListener) => { mediaListeners.delete(listener as () => void) },
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia
+}
 
 /** Test-local selector hook over a framework-neutral store instance. */
 function hookOf<T>(inst: { subscribe: (fn: () => void) => () => void; getSnapshot: () => T }) {
@@ -113,14 +133,17 @@ function drag(handle: Element, fromX: number, toX: number): void {
 
 beforeEach(() => {
   frameWidth = 1920
+  mediaFlags = { dualSegment: false, coarsePointer: false }
   selectedSession.current = 's-test' as SessionId
   selectedSessionBlank.current = false
   baselinesReady.current = true
+  localStorage.clear()
   vi.useFakeTimers()
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(() => { cb(0) }, 16) as unknown as number)
   vi.stubGlobal('cancelAnimationFrame', (h: number) => { clearTimeout(h) })
   window.innerWidth = frameWidth
+  installMatchMedia()
   Element.prototype.getBoundingClientRect = function () {
     return { width: frameWidth, height: 1080, top: 0, left: 0, right: frameWidth, bottom: 1080, x: 0, y: 0, toJSON: () => ({}) }
   }
@@ -219,7 +242,14 @@ describe('AppFrame', () => {
 
   it('sidebar slot receives live concession output as owner props', () => {
     const { slotCalls } = mountFrame()
-    expect(slotCalls.find(c => c.key === 'sidebar')!.props).toEqual({ collapsed: false, width: 280 })
+    expect(slotCalls.find(c => c.key === 'sidebar')!.props).toEqual({
+      collapsed: false,
+      width: 280,
+      presentation: 'column',
+      shellPreference: 'auto',
+      shellMode: 'desktop',
+      nextPreference: 'compact',
+    })
   })
 
   it('sidebar drag widens through rAF-batched pointer moves', () => {
@@ -261,7 +291,14 @@ describe('AppFrame', () => {
     expect(getByTestId('sidebar-content')).toBeTruthy()
     expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
     const lastSidebarCall = slotCalls.filter(c => c.key === 'sidebar').at(-1)!
-    expect(lastSidebarCall.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED })
+    expect(lastSidebarCall.props).toEqual({
+      collapsed: true,
+      width: SIDEBAR_COLLAPSED,
+      presentation: 'column',
+      shellPreference: 'auto',
+      shellMode: 'desktop',
+      nextPreference: 'compact',
+    })
   })
 
   it('viewport shrink triggers the concession chain via ResizeObserver', () => {
@@ -293,7 +330,14 @@ describe('AppFrame — narrow-viewport auto-collapse', () => {
     const { frame, slotCalls } = mountFrame()
     expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
     expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
-    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({ collapsed: true, width: SIDEBAR_COLLAPSED })
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({
+      collapsed: true,
+      width: SIDEBAR_COLLAPSED,
+      presentation: 'column',
+      shellPreference: 'auto',
+      shellMode: 'desktop',
+      nextPreference: 'compact',
+    })
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
   })
 
@@ -328,6 +372,75 @@ describe('AppFrame — narrow-viewport auto-collapse', () => {
     frameWidth = 1920
     act(() => { fireResize?.(); vi.advanceTimersByTime(20) })
     expect(tracks(frame)).toEqual([400, 0])
+  })
+})
+
+describe('AppFrame — compact, split, and forced chrome', () => {
+  it('paints a single track and drawer owner props below COMPACT_MAX', () => {
+    frameWidth = 390
+    const { frame, slotCalls } = mountFrame()
+    expect(frame.getAttribute('data-shell')).toBe('compact')
+    expect(frame.style.gridTemplateColumns).toBe('minmax(0, 1fr)')
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({
+      collapsed: true,
+      width: 320,
+      presentation: 'drawer',
+      shellPreference: 'auto',
+      shellMode: 'compact',
+      nextPreference: 'desktop',
+    })
+  })
+
+  it('closes the compact drawer when the current session changes', () => {
+    frameWidth = 390
+    const { frame, instance, rerenderFrame } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(false)
+    selectedSession.current = 's-next' as SessionId
+    act(() => { rerenderFrame() })
+    expect(frame.hasAttribute('data-sidebar-collapsed')).toBe(true)
+  })
+
+  it('opens details as an overlay in compact chrome', () => {
+    frameWidth = 390
+    const { frame, instance } = mountFrame()
+    expect(frame.hasAttribute('data-details-collapsed')).toBe(true)
+    act(() => { instance.actions.openDetails() })
+    expect(frame.hasAttribute('data-details-collapsed')).toBe(false)
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+  })
+
+  it('forced desktop keeps three tracks on a phone-sized frame', () => {
+    frameWidth = 390
+    const { frame, instance } = mountFrame()
+    act(() => { instance.actions.setShellPreference('desktop') })
+    expect(frame.getAttribute('data-shell')).toBe('desktop')
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+  })
+
+  it('dual-segment media paints split chrome without drag handles', () => {
+    mediaFlags.dualSegment = true
+    const { frame } = mountFrame()
+    expect(frame.getAttribute('data-shell')).toBe('split')
+    expect(frame.style.gridTemplateColumns).toBe('')
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+  })
+
+  it('follow-up matchMedia change recomputes the painted shell', () => {
+    const { frame } = mountFrame()
+    expect(frame.getAttribute('data-shell')).toBe('desktop')
+    mediaFlags.dualSegment = true
+    act(() => { for (const listener of mediaListeners) listener() })
+    expect(frame.getAttribute('data-shell')).toBe('split')
+  })
+
+  it('coarse-pointer tablets below 1024 paint compact', () => {
+    frameWidth = 820
+    mediaFlags.coarsePointer = true
+    const { frame } = mountFrame()
+    expect(frame.getAttribute('data-shell')).toBe('compact')
   })
 })
 

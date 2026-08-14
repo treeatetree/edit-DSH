@@ -131,3 +131,76 @@
 .overlayLayer > * {
   pointer-events: auto;
 }
+
+.frame[data-shell='compact'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 100%;
+}
+
+.frame[data-shell='compact'] .sidebarCol,
+.frame[data-shell='compact'] .centerCol,
+.frame[data-shell='compact'] .detailsCol {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.frame[data-shell='compact'] .sidebarCol {
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+  background: transparent;
+  border-right: none;
+  pointer-events: none;
+}
+
+.frame[data-shell='compact'] .detailsCol {
+  z-index: 4;
+  border-left: none;
+  pointer-events: none;
+}
+
+.frame[data-shell='compact']:not([data-details-collapsed]) .detailsCol {
+  pointer-events: auto;
+  background: var(--dsw-alias-bg-base);
+}
+
+.frame[data-shell='compact'][data-details-collapsed] .detailsCol {
+  visibility: hidden;
+}
+
+.frame[data-shell='split'] {
+  grid-template-columns: env(viewport-segment-width 0 0, 40%) minmax(0, 1fr);
+  column-gap: max(
+    0px,
+    calc(
+      env(viewport-segment-left 1 0, 0px)
+      - env(viewport-segment-left 0 0, 0px)
+      - env(viewport-segment-width 0 0, 0px)
+    )
+  );
+}
+
+.frame[data-shell='split'] .sidebarCol {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.frame[data-shell='split'] .centerCol,
+.frame[data-shell='split'] .detailsCol {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.frame[data-shell='split'] .detailsCol {
+  z-index: 4;
+  border-left: none;
+}
+
+.frame[data-shell='split']:not([data-details-collapsed]) .detailsCol {
+  background: var(--dsw-alias-bg-base);
+}
+
+.frame[data-shell='split'][data-details-collapsed] .detailsCol {
+  visibility: hidden;
+  pointer-events: none;
+}

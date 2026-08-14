@@ -5,7 +5,7 @@
  * test-sanctioned path: factory self-call + .create() gives the
  * real engine instance (same create path as production).
  */
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createLayoutStore } from '@deepseek-ai/dsh-client-ui-layout/src/client/stores.ts'
 import {
   DETAILS_DEFAULT, DETAILS_MAX, DETAILS_MIN,
@@ -13,13 +13,16 @@ import {
 } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
 
 const PERSIST_KEY = 'dsh.layout.panels'
+const SHELL_KEY = 'dsh.layout.shellPreference'
 
 beforeEach(() => { localStorage.clear() })
 
 describe('createLayoutStore', () => {
   it('initializes the sidebar at its default width, details closed, wide viewport assumed', () => {
     const { store } = createLayoutStore().create()
-    expect(store.getSnapshot()).toEqual({ sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false })
+    expect(store.getSnapshot()).toEqual({
+      sidebar: SIDEBAR_DEFAULT, details: 0, narrow: false, narrowExpanded: false, shellPreference: 'auto',
+    })
   })
 
   it('each create() is an independent instance (factory is not a singleton)', () => {
@@ -55,7 +58,9 @@ describe('createLayoutStore', () => {
     actions.setSidebar(400)
     actions.setNarrow(true)
     actions.toggleSidebar()
-    expect(store.getSnapshot()).toEqual({ sidebar: 400, details: 0, narrow: true, narrowExpanded: true })
+    expect(store.getSnapshot()).toEqual({
+      sidebar: 400, details: 0, narrow: true, narrowExpanded: true, shellPreference: 'auto',
+    })
     actions.toggleSidebar()
     expect(store.getSnapshot().narrowExpanded).toBe(false)
     expect(store.getSnapshot().sidebar).toBe(400)
@@ -98,6 +103,34 @@ describe('createLayoutStore', () => {
       details: 0,
       narrow: false,
       narrowExpanded: false,
+      shellPreference: 'auto',
     })
+  })
+
+  it('persists shellPreference and falls back to auto for garbage or missing storage', () => {
+    const first = createLayoutStore().create()
+    first.actions.setShellPreference('compact')
+    expect(localStorage.getItem(SHELL_KEY)).toBe('compact')
+    const second = createLayoutStore().create()
+    expect(second.store.getSnapshot().shellPreference).toBe('compact')
+
+    localStorage.setItem(SHELL_KEY, 'rail')
+    expect(createLayoutStore().create().store.getSnapshot().shellPreference).toBe('auto')
+  })
+
+  it('keeps a process-local preference when localStorage throws', () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    expect(createLayoutStore().create().store.getSnapshot().shellPreference).toBe('auto')
+    getItem.mockRestore()
+
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+    const { store, actions } = createLayoutStore().create()
+    actions.setShellPreference('desktop')
+    expect(store.getSnapshot().shellPreference).toBe('desktop')
+    setItem.mockRestore()
   })
 })

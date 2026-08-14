@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   BrandWordmark, FishLogo,
-  IconNewChatOutline16, IconPanelLeftOutline16,
+  IconEllipsisOutline16, IconNewChatOutline16, IconPanelLeftOutline16,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarRootComponentProps } from './contract/slots.ts'
@@ -44,8 +44,12 @@ const SCROLLBAR_LINGER_MS = 2000
 export function SidebarRoot({
   collapsed,
   width,
+  presentation = 'column',
+  shellMode = 'desktop',
+  nextPreference,
   startSession,
   toggleSidebar,
+  setShellPreference,
   t,
   renderSlot,
 }: SidebarRootComponentProps) {
@@ -113,6 +117,100 @@ export function SidebarRoot({
     }
   }, [pointerInside])
 
+  useEffect(() => {
+    if (presentation !== 'drawer' || collapsed) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') toggleSidebar()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown) }
+  }, [collapsed, presentation, toggleSidebar])
+
+  const nextLayout = nextPreference
+  const layoutLabel = nextLayout === 'auto'
+    ? t('nav.layoutAuto')
+    : nextLayout === 'compact' ? t('nav.layoutCompact') : t('nav.layoutDesktop')
+
+  if (presentation === 'drawer') {
+    return (
+      <div className={css.compactShell} data-compact-shell="" data-shell-mode={shellMode}>
+        {collapsed ? null : (
+          <>
+            <button
+              type="button"
+              className={css.backdrop}
+              aria-label={t('toggle.collapse')}
+              onClick={() => { toggleSidebar() }}
+            />
+            <div className={css.drawer} style={{ width }} data-compact-drawer="">
+              <div className={css.logoRow}>
+                <button
+                  type="button"
+                  className={clsx(css.brand, css.wide)}
+                  aria-label={t('session.new.label')}
+                  onClick={() => { startSession(); toggleSidebar() }}
+                >
+                  <BrandWordmark />
+                </button>
+                <button
+                  type="button"
+                  className={css.iconButton}
+                  aria-label={t('toggle.collapse')}
+                  onClick={() => { toggleSidebar() }}
+                >
+                  <IconPanelLeftOutline16 size={16} />
+                </button>
+              </div>
+              <div className={css.regionArea}>
+                {renderSlot('sidebar.workspaces', {
+                  wide: true,
+                  expandSidebar: () => {},
+                })}
+              </div>
+            </div>
+          </>
+        )}
+        <nav className={css.compactNav} aria-label={t('nav.sessions')} data-compact-nav="">
+          <button
+            type="button"
+            className={css.navItem}
+            aria-pressed={!collapsed}
+            aria-label={t('nav.sessions')}
+            onClick={() => { toggleSidebar() }}
+          >
+            <IconPanelLeftOutline16 size={18} />
+            <span>{t('nav.sessions')}</span>
+          </button>
+          <button
+            type="button"
+            className={css.navItem}
+            aria-label={t('session.new.label')}
+            onClick={() => { startSession() }}
+          >
+            <IconNewChatOutline16 size={18} />
+            <span>{t('session.new')}</span>
+          </button>
+          <div className={css.navSlot}>
+            {renderSlot('sidebar.footer.action', { wide: false })}
+          </div>
+          <div className={css.navSlot}>
+            {renderSlot('sidebar.settings', { wide: false })}
+          </div>
+          <button
+            type="button"
+            className={css.navItem}
+            aria-label={t('nav.layout')}
+            title={layoutLabel}
+            onClick={() => { setShellPreference(nextLayout) }}
+          >
+            <IconEllipsisOutline16 size={18} />
+            <span>{layoutLabel}</span>
+          </button>
+        </nav>
+      </div>
+    )
+  }
+
   return (
     <div
       ref={column}
@@ -120,6 +218,7 @@ export function SidebarRoot({
         css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
         collapsed && wide && css.fading, !pointerInside && css.quietBars,
       )}
+      data-shell-mode={shellMode}
       style={wide ? { width: collapsed ? lastWideWidth.current : width } : undefined}
       onPointerEnter={() => {
         cancelLinger()
@@ -186,6 +285,18 @@ export function SidebarRoot({
         <div className={css.settingsArea}>
           {renderSlot('sidebar.settings', { wide })}
         </div>
+        <Tooltip label={layoutLabel} delayMs={500} disabled={wide}>
+          <button
+            type="button"
+            className={wide ? css.layoutSwitch : `${css.layoutSwitch} ${css.layoutSwitchRail}`}
+            aria-label={t('nav.layout')}
+            title={layoutLabel}
+            onClick={() => { setShellPreference(nextLayout) }}
+          >
+            <IconEllipsisOutline16 size={wide ? 14 : 16} />
+            {wide ? <span>{layoutLabel}</span> : null}
+          </button>
+        </Tooltip>
       </div>
     </div>
   )

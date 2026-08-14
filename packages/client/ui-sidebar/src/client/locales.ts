@@ -6,6 +6,11 @@ export const zh = {
   'session.new.label': '新建会话',
   'toggle.open': '打开侧边栏',
   'toggle.collapse': '收起侧边栏',
+  'nav.sessions': '会话',
+  'nav.layout': '切换布局',
+  'nav.layoutAuto': '自动布局',
+  'nav.layoutCompact': '移动布局',
+  'nav.layoutDesktop': '桌面布局',
 } satisfies Record<string, string>
 
 /** The sidebar namespace key union. */
@@ -17,4 +22,9 @@ export const en = {
   'session.new.label': 'New session',
   'toggle.open': 'Open sidebar',
   'toggle.collapse': 'Collapse sidebar',
+  'nav.sessions': 'Sessions',
+  'nav.layout': 'Switch layout',
+  'nav.layoutAuto': 'Automatic layout',
+  'nav.layoutCompact': 'Mobile layout',
+  'nav.layoutDesktop': 'Desktop layout',
 } satisfies Record<SidebarKey, string>

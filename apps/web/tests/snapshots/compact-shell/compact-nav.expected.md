@@ -1,0 +1,14 @@
+- navigation "会话":
+  - button "会话":
+    - img
+    - text: 会话
+  - button "新建会话":
+    - img
+    - text: 新会话
+  - button "插件市场":
+    - img
+  - button:
+    - img
+  - button "切换布局":
+    - img
+    - text: 桌面布局

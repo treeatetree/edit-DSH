@@ -233,7 +233,10 @@ export interface LaunchOptions {
    * keyless first-run configuration lane; the default disables the adapter.
    */
   deepSeekMissingCredential?: boolean
-  /** Leave the current welcome notice pending; ordinary scenarios pre-acknowledge it before browser boot. */
+  /**
+   * Leave the current welcome notice pending when a scenario still mounts it.
+   * Ordinary scenarios pre-acknowledge the durable field before browser boot.
+   */
   welcomeNoticePending?: boolean
   /**
    * Patch the shipped DeepSeek search row to a deterministic endpoint and

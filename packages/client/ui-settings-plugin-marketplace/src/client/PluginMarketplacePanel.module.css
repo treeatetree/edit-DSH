@@ -54,7 +54,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px 20px 24px;
+  padding: 16px 20px calc(24px + var(--dsh-shell-gutter-bottom, 0px));
 }
 
 .hiddenLabel {

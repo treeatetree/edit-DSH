@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-14-overlay-marketplace-packages.md
-2026-08-14-overlay-marketplace-packages.md: 9d175ca6f49457b7b5f2f89ada1ec86dc5565778
-2026-08-14-overlay-marketplace-packages.zh.md: 533e70ee94f8b58e2b9029606297e42e16959f21
+2026-08-14-overlay-marketplace-packages.md: c6e8f823c7d64d50f0a28ea55ae1944d2d21b1e6
+2026-08-14-overlay-marketplace-packages.zh.md: 1cb464b7144642c835f3ab806d814e698dad3c87

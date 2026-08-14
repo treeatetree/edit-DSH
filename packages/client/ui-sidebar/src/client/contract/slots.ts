@@ -76,6 +76,8 @@ export type SidebarRootInjected = {
   startSession: (workspaceId?: WorkspaceId) => void
   /** Toggle the sidebar column through the layout service. */
   toggleSidebar: () => void
+  /** Store compact/desktop/auto chrome. */
+  setShellPreference: (preference: import('@deepseek-ai/dsh-client-ui-layout/client').ShellPreference) => void
 }
 
 /**

@@ -7,6 +7,7 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
 >
   <div
     class="root collapsed railIn quietBars"
+    data-shell-mode="desktop"
     style=""
   >
     <div
@@ -78,7 +79,162 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
           style="display: contents;"
         />
       </div>
+      <button
+        aria-label="Switch layout"
+        class="layoutSwitch layoutSwitchRail"
+        title="Mobile layout"
+        type="button"
+      >
+        <svg
+          data-content="97beeac2"
+          fill="none"
+          height="16"
+          viewBox="0 0 16 16"
+          width="16"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+      </button>
     </div>
+  </div>
+</div>
+`;
+
+exports[`sidebar shell snapshots > renders the compact drawer chrome in the default locale 1`] = `
+<div
+  data-slot="sidebar"
+  style="display: contents;"
+>
+  <div
+    class="compactShell"
+    data-compact-shell=""
+    data-shell-mode="compact"
+  >
+    <button
+      aria-label="收起侧边栏"
+      class="backdrop"
+      type="button"
+    />
+    <div
+      class="drawer"
+      data-compact-drawer=""
+      style="width: 320px;"
+    >
+      <div
+        class="logoRow"
+      >
+        <button
+          aria-label="新建会话"
+          class="brand wide"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            data-content="951274b9"
+            fill="none"
+            height="24"
+            viewBox="0 0 182 24"
+            width="182"
+          />
+        </button>
+        <button
+          aria-label="收起侧边栏"
+          class="iconButton"
+          type="button"
+        >
+          <svg
+            data-content="35f95b0c"
+            fill="none"
+            height="16"
+            viewBox="0 0 16 16"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          />
+        </button>
+      </div>
+      <div
+        class="regionArea"
+      >
+        <div
+          data-slot="sidebar.workspaces"
+          style="display: contents;"
+        />
+      </div>
+    </div>
+    <nav
+      aria-label="会话"
+      class="compactNav"
+      data-compact-nav=""
+    >
+      <button
+        aria-label="会话"
+        aria-pressed="true"
+        class="navItem"
+        type="button"
+      >
+        <svg
+          data-content="35f95b0c"
+          fill="none"
+          height="18"
+          viewBox="0 0 16 16"
+          width="18"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+        <span>
+          会话
+        </span>
+      </button>
+      <button
+        aria-label="新建会话"
+        class="navItem"
+        type="button"
+      >
+        <svg
+          data-content="c0ce4dcc"
+          fill="none"
+          height="18"
+          viewBox="0 0 16 16"
+          width="18"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+        <span>
+          新会话
+        </span>
+      </button>
+      <div
+        class="navSlot"
+      >
+        <div
+          data-slot="sidebar.footer.action"
+          style="display: contents;"
+        />
+      </div>
+      <div
+        class="navSlot"
+      >
+        <div
+          data-slot="sidebar.settings"
+          style="display: contents;"
+        />
+      </div>
+      <button
+        aria-label="切换布局"
+        class="navItem"
+        title="桌面布局"
+        type="button"
+      >
+        <svg
+          data-content="97beeac2"
+          fill="none"
+          height="18"
+          viewBox="0 0 16 16"
+          width="18"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+        <span>
+          桌面布局
+        </span>
+      </button>
+    </nav>
   </div>
 </div>
 `;
@@ -90,6 +246,7 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
 >
   <div
     class="root quietBars"
+    data-shell-mode="desktop"
     style="width: 300px;"
   >
     <div
@@ -171,6 +328,24 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
           style="display: contents;"
         />
       </div>
+      <button
+        aria-label="Switch layout"
+        class="layoutSwitch"
+        title="Mobile layout"
+        type="button"
+      >
+        <svg
+          data-content="97beeac2"
+          fill="none"
+          height="14"
+          viewBox="0 0 16 16"
+          width="14"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+        <span>
+          Mobile layout
+        </span>
+      </button>
     </div>
   </div>
 </div>
@@ -183,6 +358,7 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
 >
   <div
     class="root quietBars"
+    data-shell-mode="desktop"
     style="width: 300px;"
   >
     <div
@@ -264,6 +440,24 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
           style="display: contents;"
         />
       </div>
+      <button
+        aria-label="切换布局"
+        class="layoutSwitch"
+        title="移动布局"
+        type="button"
+      >
+        <svg
+          data-content="97beeac2"
+          fill="none"
+          height="14"
+          viewBox="0 0 16 16"
+          width="14"
+          xmlns="http://www.w3.org/2000/svg"
+        />
+        <span>
+          移动布局
+        </span>
+      </button>
     </div>
   </div>
 </div>

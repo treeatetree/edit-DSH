@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-14-mobile-fold-shell.md
+2026-08-14-mobile-fold-shell.md: 836125e089a7b670964d2c0c03065b19f2abf255
+2026-08-14-mobile-fold-shell.zh.md: 79034a06678ed449bcc42b18976746c1a48cd079

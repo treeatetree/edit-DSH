@@ -24,6 +24,7 @@ function config(overrides: Partial<ReturnType<typeof PluginMarketplaceGateway.Co
     githubUserAgent: 'ua',
     githubToken: '',
     officialSkipGroups: ['boot'],
+    officialGroups: ['bundle'],
     profile: 'web',
     catalogCacheMs: 60_000,
     persistCatalog: false,

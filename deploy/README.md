@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-A host overlay that publishes official `dsh web` on a cloud VM without changing `packages/`. The CLI still binds `127.0.0.1`; nginx reverse-proxies a public Host, and `--trusted-host` lists that Host for the `/api` browser-trust fence ([web bind](../.agents/notes/implemented/feature/2026-07-22-web-bind-address.md), [CLI](../apps/cli/reference/README.md)).
+A host overlay that publishes official `dsh web` on a cloud VM without changing `packages/`. The CLI still binds `127.0.0.1`; nginx reverse-proxies a public Host. The `/api` location sets `Host` to that loopback authority so privileged JSON-RPC (`settings.describe` and the rest of the empty-trust list) can succeed; `--trusted-host` still lists the public name for any request that keeps it ([web bind](../.agents/notes/implemented/feature/2026-07-22-web-bind-address.md), [CLI](../apps/cli/reference/README.md)).
 
 ## Layout
 
@@ -22,7 +22,7 @@ On the VM, as root, from a checkout of this overlay:
 sudo bash deploy/install.sh
 ```
 
-`install.sh` does not replace `/opt/dsh/env` once that file exists. Edit Host names there, then `systemctl restart dsh-web` and, if the nginx template changed, re-run `install.sh` after moving `/etc/nginx/conf.d/dsh-web.conf` aside.
+`install.sh` does not replace `/opt/dsh/env` once that file exists. Edit Host names there, then `systemctl restart dsh-web`. Re-running `install.sh` overwrites `/etc/nginx/conf.d/dsh-web.conf` from the template.
 
 The shipped defaults assume public IP `118.145.156.15`, publish port `13080`, and `dsh.118.145.156.15.sslip.io` (sslip.io answers that name with the same A record). Point a real DNS name at the VM, set `DSH_SERVER_NAME` / `DSH_PUBLIC_HOST` to that name, and reload nginx plus `dsh-web`.
 
@@ -30,7 +30,9 @@ The shipped defaults assume public IP `118.145.156.15`, publish port `13080`, an
 
 Open the named Host in a browser. In **Settings → Models**, paste a DeepSeek API key; the overlay does not require `DEEPSEEK_API_KEY` in the environment. Choose `/opt/dsh/workspace` as the workspace.
 
-This overlay does not add authentication. Anyone who can reach the published Host can drive the agent, including shell and filesystem tools under the process user `dsh`. Keep the Host off the public internet, or put an identity-aware proxy in front, before treating it as a shared product.
+Point TLS tunnels (cloudflared, Caddy) at the nginx publish port (`DSH_PUBLISH_PORT`, default `13080`), not at `DSH_BIND_PORT`. A tunnel aimed at `127.0.0.1:3080` skips the Host rewrite, and Settings → Models returns HTTP 403.
+
+This overlay does not add authentication. Rewriting `/api` Host to loopback makes privileged methods reachable on the published hostname. Anyone who can reach that Host can drive the agent, including shell and filesystem tools under the process user `dsh`. Keep the Host off the public internet, or put an identity-aware proxy in front, before treating it as a shared product.
 
 ## Known Limitations and Deferred Work
 

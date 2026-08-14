@@ -10,13 +10,15 @@ fork 需要从公网打开浏览器 UI，同时保持官方 `packages/` 树完�
 
 ## Decision
 
-[`deploy/`](../../../../deploy/README.md) 是主机叠加层：从 npm 安装已发布的 `@deepseek-ai/dsh` CLI，运行 `dsh web --host 127.0.0.1`，再经 nginx 对外发布。`:80` 上按 `server_name` 匹配的虚拟主机，外加一条专用发布端口，保留现有 default_server。`--trusted-host` 列出浏览器会发送的每一个 Host，这是 `/api` 围栏所要求的。进程用户是 `dsh`；会话数据在 `/opt/dsh/home`。
+[`deploy/`](../../../../deploy/README.md) 是主机叠加层：从 npm 安装已发布的 `@deepseek-ai/dsh` CLI，运行 `dsh web --host 127.0.0.1`，再经 nginx 对外发布。`:80` 上按 `server_name` 匹配的虚拟主机，外加一条专用发布端口，保留现有 default_server。`--trusted-host` 列出浏览器可能发送的每一个公网 Host。`/api` location 把 `Host` 设为 `127.0.0.1:<bind>` 并省略 `Origin`，因为特权方法（`settings.describe`、凭据、主机选择器）用空信任列表调用 `isTrustedApiRequest`，因此只接受回环 Host。TLS 隧道必须指向 nginx 发布端口，该改写才会生效。进程用户是 `dsh`；会话数据在 `/opt/dsh/home`。
 
-本叠加层不提供认证。在后面加身份代理之前，能连上该 Host 即能访问。
+本叠加层不提供认证。在后面加身份代理之前，能连上该 Host 即能访问。Host 改写让仅回环的特权 RPC 在已发布主机名上可达。
 
 ## Alternatives considered
 
 **改官方 CLI 去绑定 `0.0.0.0`。** 不采用：CLI 拒绝该绑定，是为了避免把仅回环的进程暴露成远程代码执行，而且 fork 要求不改官方包。
+
+**改官方 `PRIVILEGED_METHODS`，让 `--trusted-host` 也能通过空信任检查。** 不采用：fork 要求不改官方包，而且该检查是产品对设置与凭据的回环钉扎。
 
 **替换现有 `:80` default_server。** 不采用：该虚拟主机已经拥有 `/`、`/api`、`/finance` 和 `/hermes`。
 

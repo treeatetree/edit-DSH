@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Launch official `dsh web` on loopback with Host values the reverse proxy will present.
+# Launch official `dsh web` on loopback. nginx /api presents Host 127.0.0.1:<port>;
+# --trusted-host still lists public names for any /api request that keeps them.
 set -euo pipefail
 
 bind_port="${DSH_BIND_PORT:-3080}"

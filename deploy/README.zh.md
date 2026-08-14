@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-这是一层只改主机装配、不改 `packages/` 的叠加：官方 `dsh web` 仍绑定 `127.0.0.1`，由 nginx 按公网 Host 反代，并用 `--trusted-host` 把该 Host 写入 `/api` 浏览器信任围栏（[绑定决策](../.agents/notes/implemented/feature/2026-07-22-web-bind-address.md)，[CLI](../apps/cli/reference/README.md)）。
+这是一层只改主机装配、不改 `packages/` 的叠加：官方 `dsh web` 仍绑定 `127.0.0.1`，由 nginx 按公网 Host 反代。`/api` location 把 `Host` 写成该回环权威名，特权 JSON-RPC（`settings.describe` 以及空信任列表里的其余方法）才能成功；`--trusted-host` 仍列出公网名，以覆盖仍携带该 Host 的请求（[绑定决策](../.agents/notes/implemented/feature/2026-07-22-web-bind-address.md)，[CLI](../apps/cli/reference/README.md)）。
 
 ## Layout
 
@@ -22,7 +22,7 @@
 sudo bash deploy/install.sh
 ```
 
-`/opt/dsh/env` 一旦存在，`install.sh` 不会覆盖它。改 Host 后执行 `systemctl restart dsh-web`；若 nginx 模板变了，先移走 `/etc/nginx/conf.d/dsh-web.conf` 再重跑 `install.sh`。
+`/opt/dsh/env` 一旦存在，`install.sh` 不会覆盖它。改 Host 后执行 `systemctl restart dsh-web`。再次运行 `install.sh` 会按模板覆盖 `/etc/nginx/conf.d/dsh-web.conf`。
 
 随附默认值假定公网 IP 为 `118.145.156.15`、发布端口 `13080`，以及 `dsh.118.145.156.15.sslip.io`（sslip.io 用同一 A 记录应答该名）。把真实 DNS 指到该虚拟机后，把 `DSH_SERVER_NAME` / `DSH_PUBLIC_HOST` 改成该名，并重载 nginx 与 `dsh-web`。
 
@@ -30,7 +30,9 @@ sudo bash deploy/install.sh
 
 用浏览器打开那个具名 Host。在 **设置 → 模型** 粘贴 DeepSeek API key；叠加层不要求环境里有 `DEEPSEEK_API_KEY`。工作区选 `/opt/dsh/workspace`。
 
-本叠加层不提供登录。能访问该 Host 的人就可以驱动智能体，包括以进程用户 `dsh` 运行的 shell 与文件系统工具。在把它当成共享产品之前，不要把该 Host 暴露在公网，或在前面加身份感知代理。
+TLS 隧道（cloudflared、Caddy）必须指向 nginx 发布端口（`DSH_PUBLISH_PORT`，默认 `13080`），不要指向 `DSH_BIND_PORT`。隧道直连 `127.0.0.1:3080` 会跳过 Host 改写，设置 → 模型会返回 HTTP 403。
+
+本叠加层不提供登录。把 `/api` 的 Host 改写成回环，等于让特权方法在已发布主机名上可用。能访问该 Host 的人就可以驱动智能体，包括以进程用户 `dsh` 运行的 shell 与文件系统工具。在把它当成共享产品之前，不要把该 Host 暴露在公网，或在前面加身份感知代理。
 
 ## Known Limitations and Deferred Work
 

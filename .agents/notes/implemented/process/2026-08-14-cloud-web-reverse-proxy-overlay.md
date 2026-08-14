@@ -10,13 +10,15 @@ A fork wants a browser UI reachable from the public internet while leaving every
 
 ## Decision
 
-[`deploy/`](../../../../deploy/README.md) is a host overlay: it installs the published `@deepseek-ai/dsh` CLI from npm, runs `dsh web --host 127.0.0.1`, and publishes it through nginx. A named `:80` `server_name` plus a dedicated publish port keep the existing default_server intact. `--trusted-host` lists every Host the browser will send, which is what the `/api` fence requires. The process user is `dsh`; session data lives under `/opt/dsh/home`.
+[`deploy/`](../../../../deploy/README.md) is a host overlay: it installs the published `@deepseek-ai/dsh` CLI from npm, runs `dsh web --host 127.0.0.1`, and publishes it through nginx. A named `:80` `server_name` plus a dedicated publish port keep the existing default_server intact. `--trusted-host` lists every public Host the browser may send. The `/api` location sets `Host` to `127.0.0.1:<bind>` and omits `Origin`, because privileged methods (`settings.describe`, credentials, host pickers) call `isTrustedApiRequest` with an empty trust list and therefore accept only a loopback Host. TLS tunnels must target the nginx publish port so that rewrite applies. The process user is `dsh`; session data lives under `/opt/dsh/home`.
 
-This overlay does not add authentication. Network reachability is the access control unless a later proxy adds identity.
+This overlay does not add authentication. Network reachability is the access control unless a later proxy adds identity. The Host rewrite makes the loopback-only privileged RPC reachable on the published hostname.
 
 ## Alternatives considered
 
 **Patch the official CLI to bind `0.0.0.0`.** Rejected: the CLI refuses that bind so a loopback-only process is not exposed as remote code execution, and the fork asked not to change official packages.
+
+**Patch official `PRIVILEGED_METHODS` so `--trusted-host` satisfies the empty-trust check.** Rejected: the fork asked not to change official packages, and that check is the product's loopback pin for settings and credentials.
 
 **Replace the existing `:80` default_server.** Rejected: that vhost already owns `/`, `/api`, `/finance`, and `/hermes`.
 

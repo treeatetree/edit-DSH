@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PluginMarketplacePanel } from '../src/client/PluginMarketplacePanel.tsx'
+import { PluginMarketplacePanel, type PluginMarketplacePanelProps } from '../src/client/PluginMarketplacePanel.tsx'
 import { PluginMarketplaceTrigger } from '../src/client/PluginMarketplaceTrigger.tsx'
 import { createMarketplaceViewStore } from '../src/client/view-store.ts'
 import { en, type PluginMarketplaceLocaleKey } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 
-const t = ((key: PluginMarketplaceLocaleKey): string => en[key]) as (key: PluginMarketplaceLocaleKey) => string
+const t = ((key: PluginMarketplaceLocaleKey): string => en[key]) as PluginMarketplacePanelProps['t']
 const EMPTY = { entries: [], sources: [], profile: 'web' }
 
 describe('marketplace view store', () => {

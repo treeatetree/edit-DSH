@@ -12,9 +12,9 @@ Catalog ownership remains [web plugin marketplace](../feature/2026-08-14-web-plu
 
 ## Decision
 
-`Config.officialGroups` defaults to `['bundle']`. Empty means every group except `officialSkipGroups`. Disk cache envelope version is `2` so a prior whole-tree snapshot is a miss.
+`Config.officialGroups` defaults to `['bundle']`. Empty means every group except `officialSkipGroups`. Disk cache envelope version is `3` so a prior whole-tree or unfiltered community snapshot is a miss.
 
-`runPluginCommand` maps `/pnpm not found/i` to `missing-pnpm` with `pnpm is not installed on PATH`, and other spawn failures to `dsh plugin ${verb} failed`. Overlay `install.sh` / `marketplace/install.sh` enable `pnpm@11.7.0` through corepack and a `/usr/local/bin/pnpm` shim on the systemd PATH.
+`runPluginCommand` maps `/pnpm not found/i` to `missing-pnpm` with `pnpm is not installed on PATH`, and other spawn failures to `dsh plugin ${verb} failed`. Overlay `install.sh` / `marketplace/install.sh` install `pnpm@11.7.0` with `npm install -g` when npm exists, otherwise corepack, and a `/usr/local/bin/pnpm` shim on the systemd PATH. How `github:` specs are fetched is recorded in [marketplace GitHub tarball install](2026-08-15-marketplace-github-tarball-install.md).
 
 The cover dismisses notices, labels official `installSpec: null` rows as browse-only, names the custom-spec form, and renders Open Graph images only in expanded details.
 
@@ -36,4 +36,4 @@ Installing a community spec still runs that repository as user `dsh` after the n
 
 ## Testing
 
-Host tests cover `officialGroups` filtering, cache envelope `2` rejecting version `1`, `missing-pnpm`, and sanitized `command-failed`. Client tests cover browse-only copy, cover images only after expand, dismiss, and `missing-pnpm` local diagnostics. `scripts/dsh-nginx-path-prefix.spec.ts` asserts the EventSource inject and `/plugins/events` buffering. Coverage gaps remain live GitHub pagination and an end-to-end `dsh plugin add` against a real registry.
+Host tests cover `officialGroups` filtering, cache envelope `3` rejecting versions `1` and `2`, `missing-pnpm`, and sanitized `command-failed`. Client tests cover browse-only copy, cover images only after expand, dismiss, and `missing-pnpm` local diagnostics. `scripts/dsh-nginx-path-prefix.spec.ts` asserts the EventSource inject and `/plugins/events` buffering. Coverage gaps remain live GitHub pagination and an end-to-end `dsh plugin add` against a real registry.

@@ -52,6 +52,12 @@ const FILTER_KEYS = {
 
 const FILTERS = ['all', 'official', 'community', 'installed'] as const satisfies readonly FilterId[]
 
+/** Format elapsed install/remove time as `m:ss`. */
+function formatElapsed(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  return `${String(minutes)}:${String(seconds % 60).padStart(2, '0')}`
+}
+
 /** Whether a catalog row matches the local query and origin filter. */
 function matches(entry: MarketplacePlugin, query: string, filter: FilterId): boolean {
   if (filter !== 'all' && entry.origin !== filter) return false
@@ -83,6 +89,7 @@ export function PluginMarketplaceSettingsTab({
   const [expanded, setExpanded] = useState<MarketplacePlugin['id'] | null>(null)
   const [customSpec, setCustomSpec] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [elapsedSec, setElapsedSec] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
   const [state, setState] = useState<ViewState>(() => {
     const snapshot = lastCatalog?.()
@@ -97,6 +104,18 @@ export function PluginMarketplaceSettingsTab({
     )
     return () => { current = false }
   }, [catalog, request])
+
+  useEffect(() => {
+    if (busyId === null) {
+      setElapsedSec(0)
+      return
+    }
+    const started = Date.now()
+    const timer = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - started) / 1000))
+    }, 1000)
+    return () => { clearInterval(timer) }
+  }, [busyId])
 
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const filteredEntries = useMemo(
@@ -128,7 +147,6 @@ export function PluginMarketplaceSettingsTab({
         return
       }
       setNotice(t('restart'))
-      setState({ status: 'loading' })
       setRequest(value => value + 1)
     } catch {
       setNotice(t('error'))
@@ -160,6 +178,11 @@ export function PluginMarketplaceSettingsTab({
           <button type="button" className={css.dismiss} onClick={() => { setNotice(null) }}>
             {t('dismissNotice')}
           </button>
+        </p>
+      ) : null}
+      {busyId !== null ? (
+        <p className={css.status} data-marketplace-busy="true">
+          {t('installHint')} {formatElapsed(elapsedSec)}
         </p>
       ) : null}
       {state.status === 'ready' ? (

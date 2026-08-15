@@ -195,6 +195,24 @@ describe('plugin marketplace catalog helpers', () => {
     expect(parseCommunitySearch('{}')).toEqual([])
   })
 
+  it('drops the official repository from community hits', () => {
+    const entries = parseCommunitySearch(JSON.stringify({
+      items: [
+        {
+          full_name: 'DeepSeek-AI/deepseek-harness',
+          name: 'deepseek-harness',
+          html_url: 'https://github.com/DeepSeek-AI/deepseek-harness',
+        },
+        {
+          full_name: 'acme/dsh-hello',
+          name: 'dsh-hello',
+          html_url: 'https://github.com/acme/dsh-hello',
+        },
+      ],
+    }), 'deepseek-ai/deepseek-harness')
+    expect(entries.map(entry => entry.id)).toEqual(['community:acme/dsh-hello'])
+  })
+
   it('keeps installed rows first and drops later rows that share an id or install spec', () => {
     const installed = [{
       id: marketplacePluginId('installed:dsh-hello'),
@@ -346,6 +364,11 @@ describe('loadCatalog', () => {
               full_name: 'acme/other',
               name: 'other',
               html_url: 'https://github.com/acme/other',
+            },
+            {
+              full_name: 'deepseek-ai/deepseek-harness',
+              name: 'deepseek-harness',
+              html_url: 'https://github.com/deepseek-ai/deepseek-harness',
             },
           ],
         }),

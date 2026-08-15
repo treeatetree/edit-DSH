@@ -16,7 +16,7 @@ Status: implemented
 
 Host `catalog` 行现在带 `imageUrl`、`coverUrl`、`owner`、`language`、`updatedAt`、`forks` 和 `topics`。社区行从 GitHub 搜索 payload 映射这些字段，再加上 `https://opengraph.githubassets.com/1/{owner}/{repo}`（不再打 API）。官方行在已有 git-tree 读取之外，用一次 `GET /repos/{owner}/{repo}` 复制仓库级星标、语言和所有者头像；不用 monorepo 的 Open Graph 图当每个包的封面。封面把 Open Graph 图画在展开后的详情里，而不是折叠卡片的头图。tree、repo 与 topic 搜索并发执行。
 
-`Config.persistCatalog`（默认 true）把目录写到 `$DSH_HOME/plugin-marketplace-catalog.json`，信封版本为 `2`。`Config.prefetchCatalog`（默认 true）在 Host 插件加载时启动 `catalog()`。测试注入 `persist`，并把这两个开关设为 false。成功的 add/uninstall 会清掉内存和磁盘。浏览器插件也会经 Remote 预取，并立刻画出 `lastCatalog`。
+`Config.persistCatalog`（默认 true）把目录写到 `$DSH_HOME/plugin-marketplace-catalog.json`，信封版本为 `3`。`Config.prefetchCatalog`（默认 true）在 Host 插件加载时启动 `catalog()`。测试注入 `persist`，并把这两个开关设为 false。成功的 add/uninstall 会清掉内存和磁盘。浏览器插件也会经 Remote 预取，并立刻画出 `lastCatalog`。
 
 Host RPC 名称、规格拒绝、特权方法回环钉扎和 `restartRequired` 仍以 [Web 插件市场](2026-08-14-web-plugin-marketplace.md) 为准。
 

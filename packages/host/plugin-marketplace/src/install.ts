@@ -6,7 +6,7 @@
 import { resolveProfileDir } from '@deepseek-ai/dsh-app-boot'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-native-command'
-import { isInstallSpec, isPackageName } from './spec.ts'
+import { isInstallSpec, isPackageName, resolveInstallTarget } from './spec.ts'
 import { readInstalledPlugins } from './catalog.ts'
 import type { MarketplaceMutationFailure, MarketplaceMutationResult } from './types.ts'
 
@@ -53,9 +53,10 @@ export async function runPluginCommand(
     controller.abort()
   }, request.timeoutMs)
   try {
+    const forwarded = verb === 'add' ? resolveInstallTarget(target) : target
     const result = await run(
       request.cliPath,
-      ['plugin', '--profile', request.profile, verb, target],
+      ['plugin', '--profile', request.profile, verb, forwarded],
       controller.signal,
     )
     return { ok: true, stdout: result.stdout, stderr: result.stderr, restartRequired: true }

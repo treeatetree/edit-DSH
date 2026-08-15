@@ -12,9 +12,9 @@ Status: implemented
 
 ## 决策
 
-`Config.officialGroups` 默认为 `['bundle']`。空数组表示除 `officialSkipGroups` 外的全部分组。磁盘缓存信封版本为 `2`，因此先前的整树快照会未命中。
+`Config.officialGroups` 默认为 `['bundle']`。空数组表示除 `officialSkipGroups` 外的全部分组。磁盘缓存信封版本为 `3`，因此先前的整树或未过滤社区快照会未命中。
 
-`runPluginCommand` 把 `/pnpm not found/i` 映射为 `missing-pnpm`，文案是 `pnpm is not installed on PATH`；其他启动失败映射为 `dsh plugin ${verb} failed`。叠加层 `install.sh` / `marketplace/install.sh` 通过 corepack 启用 `pnpm@11.7.0`，并在 systemd PATH 上放 `/usr/local/bin/pnpm` 垫片。
+`runPluginCommand` 把 `/pnpm not found/i` 映射为 `missing-pnpm`，文案是 `pnpm is not installed on PATH`；其他启动失败映射为 `dsh plugin ${verb} failed`。叠加层 `install.sh` / `marketplace/install.sh` 在有 npm 时用 `npm install -g` 安装 `pnpm@11.7.0`，否则走 corepack，并在 systemd PATH 上放 `/usr/local/bin/pnpm` 垫片。`github:` 规格如何拉取记录在 [市场 GitHub 归档安装](2026-08-15-marketplace-github-tarball-install.md)。
 
 封面可以关闭提示，给 `installSpec: null` 的官方行标“仅浏览”，给自定义规格表单可见标签，并且只在展开详情里渲染 Open Graph 图。
 
@@ -36,4 +36,4 @@ nginx HTML 注入的 `EventSource` 构造函数与 `fetch` / `WebSocket` 使用�
 
 ## 测试
 
-Host 测试覆盖 `officialGroups` 过滤、缓存信封 `2` 拒绝版本 `1`、`missing-pnpm`，以及净化后的 `command-failed`。Client 测试覆盖仅浏览文案、仅在展开后出现封面图、关闭提示，以及 `missing-pnpm` 本地诊断。`scripts/dsh-nginx-path-prefix.spec.ts` 断言 EventSource 注入和 `/plugins/events` 缓冲。覆盖缺口仍是线上 GitHub 分页，以及针对真实注册表的端到端 `dsh plugin add`。
+Host 测试覆盖 `officialGroups` 过滤、缓存信封 `3` 拒绝版本 `1` 和 `2`、`missing-pnpm`，以及净化后的 `command-failed`。Client 测试覆盖仅浏览文案、仅在展开后出现封面图、关闭提示，以及 `missing-pnpm` 本地诊断。`scripts/dsh-nginx-path-prefix.spec.ts` 断言 EventSource 注入和 `/plugins/events` 缓冲。覆盖缺口仍是线上 GitHub 分页，以及针对真实注册表的端到端 `dsh plugin add`。

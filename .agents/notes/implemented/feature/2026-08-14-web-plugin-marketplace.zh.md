@@ -17,7 +17,7 @@ Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace
 `catalog` 合并三个来源，并且不会因为 GitHub 失败而拒绝 RPC。官方默认只保留 bundle 分组的原因，以及线上安装/SSE 失败如何映射，记录在 [插件市场线上目录缺陷](../bug-fix/2026-08-14-marketplace-live-catalog-bugs.md)。
 
 - **官方** — 配置仓库（默认 `deepseek-ai/deepseek-harness`）里 `packages/<group>/<pkg>/package.json` 的 GitHub git tree。这些行只供浏览（`installSpec: null`），因为它们已随 CLI 组合包交付。Config `officialGroups` 默认为 `['bundle']`，官方列表是 profile 层而不是整棵 monorepo。空的 `officialGroups` 会保留除 `officialSkipGroups` 以外的全部分组（默认跳过 `boot`、`examples`、`test-support`、`typert` 和 `util`）。
-- **社区** — GitHub 仓库搜索 `topic:<githubTopic>`（默认 `dsh-plugin`）。每条命中可安装为 `github:owner/repo`。
+- **社区** — GitHub 仓库搜索 `topic:<githubTopic>`（默认 `dsh-plugin`）。除 `officialRepository` 本身外，每条命中可安装为 `github:owner/repo`。`add` 如何拉取该规格记录在 [市场 GitHub 归档安装](../bug-fix/2026-08-15-marketplace-github-tarball-install.md)。
 - **已安装** — `$DSH_HOME/profiles/<profile>/package.json` 中的依赖。这些行可以卸载。
 
 `add` 与 `uninstall` 通过 `execFile` 启动 `dsh plugin --profile <name> add|remove`（不经过 shell）。规格只允许注册表名、可选版本/标签，以及 `github:owner/repo[#ref]`。相对路径、`file:`、`link:` 与 shell 元字符在启动前拒绝。成功的变更返回 `restartRequired: true`；正在运行的 Loader 不会热加载新装的 bundle。

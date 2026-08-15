@@ -314,13 +314,16 @@ export function parseOfficialRepo(body: string, repository: string): OfficialRep
 /**
  * Map GitHub topic search hits into installable community rows.
  * @param body - GitHub search JSON.
+ * @param skipRepository - official `owner/repo`; that hit is browse-only on the official tree.
  * @returns community rows with `installSpec` `github:owner/repo`.
  */
-export function parseCommunitySearch(body: string): MarketplacePlugin[] {
+export function parseCommunitySearch(body: string, skipRepository?: string): MarketplacePlugin[] {
   const parsed = JSON.parse(body) as GitHubSearchResponse
+  const skip = skipRepository?.toLowerCase()
   const entries: MarketplacePlugin[] = []
   for (const item of parsed.items ?? []) {
     if (item.full_name === undefined || item.html_url === undefined) continue
+    if (skip !== undefined && item.full_name.toLowerCase() === skip) continue
     const title = item.name ?? item.full_name
     const discovery = githubDiscovery(item.full_name, item.owner?.avatar_url)
     entries.push({
@@ -447,7 +450,7 @@ export async function loadCatalog(
   if (!searchResult.ok) {
     sources.push({ id: 'community', ok: false, message: searchResult.message })
   } else {
-    community = parseCommunitySearch(searchResult.body)
+    community = parseCommunitySearch(searchResult.body, request.officialRepository)
     sources.push({ id: 'community', ok: true, message: '' })
   }
 

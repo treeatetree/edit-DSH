@@ -9,7 +9,10 @@ import type {
 import { en, type PluginMarketplaceLocaleKey } from '../src/client/locales.ts'
 import type { MarketplaceMutationResult } from '@deepseek-ai/dsh-api-remotes/client'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 type Snapshot = Awaited<ReturnType<PluginMarketplaceSettingsTabInjected['catalog']>>
 const t = ((key: PluginMarketplaceLocaleKey): string => en[key]) as PluginMarketplaceSettingsTabProps['t']
@@ -260,6 +263,8 @@ describe('PluginMarketplaceSettingsTab', () => {
     fireEvent.click(cardAction('install'))
     await waitFor(() => { expect(screen.getByRole('status').querySelector('span')?.textContent).toBe(en.restart) })
     expect(catalog).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText(en.loading)).toBeNull()
+    expect(screen.getByRole('heading', { name: en.catalog })).toBeTruthy()
 
     fireEvent.click(await screen.findByRole('button', { name: 'dsh-world, Installed' }))
     fireEvent.click(cardAction('remove'))
@@ -286,12 +291,18 @@ describe('PluginMarketplaceSettingsTab', () => {
     expect(install).not.toHaveBeenCalled()
 
     fireEvent.change(spec, { target: { value: 'github:acme/extra' } })
+    vi.useFakeTimers()
     fireEvent.click(submit)
-    await waitFor(() => { expect(install).toHaveBeenCalledWith('github:acme/extra') })
+    expect(install).toHaveBeenCalledWith('github:acme/extra')
     expect(screen.getByRole('button', { name: en.installing })).toBeTruthy()
+    expect(document.querySelector('[data-marketplace-busy]')?.textContent).toContain(en.installHint)
+    expect(document.querySelector('[data-marketplace-busy]')?.textContent).toContain('0:00')
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+    expect(document.querySelector('[data-marketplace-busy]')?.textContent).toContain('0:01')
     fireEvent.submit(spec.closest('form')!)
     expect(install).toHaveBeenCalledTimes(1)
     await act(async () => { deferred.resolve(SUCCESS) })
+    vi.useRealTimers()
     await waitFor(() => { expect(screen.getByRole('status').querySelector('span')?.textContent).toBe(en.restart) })
   })
 

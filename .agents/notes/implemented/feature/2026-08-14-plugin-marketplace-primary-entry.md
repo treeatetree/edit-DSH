@@ -16,7 +16,7 @@ The marketplace lived as a third tab inside Settings → Plugins. Discovering or
 
 Host `catalog` rows now carry `imageUrl`, `coverUrl`, `owner`, `language`, `updatedAt`, `forks`, and `topics`. Community rows map those fields from the GitHub search payload plus `https://opengraph.githubassets.com/1/{owner}/{repo}` (no extra API). Official rows copy repository-level stars, language, and the owner avatar from one `GET /repos/{owner}/{repo}` beside the existing git-tree read; they do not reuse the monorepo Open Graph image as a per-package cover. The cover panel renders Open Graph images in expanded details, not as a collapsed-card header. Tree, repo, and topic search run concurrently.
 
-`Config.persistCatalog` (default true) writes `$DSH_HOME/plugin-marketplace-catalog.json` with envelope version `2`. `Config.prefetchCatalog` (default true) starts `catalog()` when the Host plugin loads. Tests inject `persist` and set both flags false. A successful add/uninstall clears memory and disk. The browser plugin also prefetches through the Remote and paints `lastCatalog` immediately.
+`Config.persistCatalog` (default true) writes `$DSH_HOME/plugin-marketplace-catalog.json` with envelope version `3`. `Config.prefetchCatalog` (default true) starts `catalog()` when the Host plugin loads. Tests inject `persist` and set both flags false. A successful add/uninstall clears memory and disk. The browser plugin also prefetches through the Remote and paints `lastCatalog` immediately.
 
 Host RPC names, spec refusal, privileged-method loopback pin, and `restartRequired` stay as recorded in [web plugin marketplace](2026-08-14-web-plugin-marketplace.md).
 

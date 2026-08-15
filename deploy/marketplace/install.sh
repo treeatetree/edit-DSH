@@ -71,9 +71,13 @@ PY
 }
 
 ensure_pnpm() {
-  if ! command -v pnpm >/dev/null; then
+  # Prefer a real pnpm entry over the corepack download shim. The first
+  # `dsh plugin add` as user dsh otherwise fetches pnpm from registry.npmjs.org.
+  if command -v npm >/dev/null; then
+    npm install -g pnpm@11.7.0
+  elif ! command -v pnpm >/dev/null; then
     if ! command -v corepack >/dev/null; then
-      echo "marketplace/install.sh: pnpm or corepack is required on PATH" >&2
+      echo "marketplace/install.sh: npm, pnpm, or corepack is required on PATH" >&2
       exit 1
     fi
     corepack enable
@@ -82,12 +86,22 @@ ensure_pnpm() {
   local pnpm_path
   pnpm_path="$(command -v pnpm)"
   if [[ -z $pnpm_path ]]; then
-    echo "marketplace/install.sh: pnpm is still missing after corepack enable" >&2
+    echo "marketplace/install.sh: pnpm is still missing after install" >&2
     exit 1
   fi
   if [[ $pnpm_path != /usr/local/bin/pnpm && $pnpm_path != /usr/bin/pnpm ]]; then
     ln -sf "$pnpm_path" /usr/local/bin/pnpm
   fi
+}
+
+ensure_profile_npmrc() {
+  local registry="${DSH_NPM_REGISTRY:-}"
+  local npmrc="$prefix/home/profiles/web/.npmrc"
+  if [[ -z $registry ]]; then
+    return
+  fi
+  printf 'registry=%s\n' "$registry" >"$npmrc"
+  chown dsh:dsh "$npmrc"
 }
 
 reload_nginx() {
@@ -143,6 +157,7 @@ need_root
 [[ -d $nm/dsh-web-app ]] || { echo "marketplace/install.sh: missing $nm/dsh-web-app" >&2; exit 1; }
 
 ensure_pnpm
+ensure_profile_npmrc
 refresh_host_overlay
 clear_catalog_cache
 

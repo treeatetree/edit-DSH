@@ -74,7 +74,11 @@ ensure_pnpm() {
   # Prefer a real pnpm entry over the corepack download shim. The first
   # `dsh plugin add` as user dsh otherwise fetches pnpm from registry.npmjs.org.
   if command -v npm >/dev/null; then
-    npm install -g pnpm@11.7.0
+    if [[ -n ${DSH_NPM_REGISTRY:-} ]]; then
+      npm install -g pnpm@11.7.0 --registry="$DSH_NPM_REGISTRY"
+    else
+      npm install -g pnpm@11.7.0
+    fi
   elif ! command -v pnpm >/dev/null; then
     if ! command -v corepack >/dev/null; then
       echo "marketplace/install.sh: npm, pnpm, or corepack is required on PATH" >&2

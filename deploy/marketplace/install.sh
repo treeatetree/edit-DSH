@@ -74,6 +74,8 @@ ensure_pnpm() {
   # Prefer a real pnpm entry over the corepack download shim. The first
   # `dsh plugin add` as user dsh otherwise fetches pnpm from registry.npmjs.org.
   if command -v npm >/dev/null; then
+    # corepack leaves a pnpm shim in /usr/local/bin that npm install -g will not replace.
+    rm -f /usr/local/bin/pnpm /usr/local/bin/pnpx
     if [[ -n ${DSH_NPM_REGISTRY:-} ]]; then
       npm install -g pnpm@11.7.0 --registry="$DSH_NPM_REGISTRY"
     else

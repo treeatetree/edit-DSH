@@ -169,17 +169,44 @@
 }
 
 .restart {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-state-business-primary);
 }
 
+.dismiss {
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .custom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.customRow {
   display: flex;
   gap: 8px;
 }
 
-.custom input {
+.customRow input {
   flex: 1;
 }
 
@@ -209,7 +236,9 @@
 .cover {
   display: block;
   width: 100%;
-  height: 120px;
+  max-height: 160px;
+  margin: 0 0 10px;
+  border-radius: 8px;
   object-fit: cover;
   background: var(--dsw-alias-bg-layer-1);
 }
@@ -282,7 +311,9 @@
 .cardTrailing {
   display: inline-flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 7px;
   color: var(--dsw-alias-label-tertiary);
 }
@@ -308,6 +339,10 @@
 .configTag[data-origin='installed'] {
   background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);
   color: var(--dsw-alias-state-success-primary);
+}
+
+.configTag[data-kind='browse'] {
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .metric {
@@ -392,7 +427,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .custom {
+  .customRow {
     flex-direction: column;
   }
 }

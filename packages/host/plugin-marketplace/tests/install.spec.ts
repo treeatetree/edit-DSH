@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { isInstallSpec, isPackageName } from '../src/spec.ts'
+import { isInstallSpec, isPackageName, resolveInstallTarget } from '../src/spec.ts'
 import { installPlugin, mutationFailure, removePlugin, runPluginCommand } from '../src/install.ts'
 
 afterEach(() => {
@@ -17,6 +17,11 @@ describe('marketplace spec validation', () => {
     expect(isInstallSpec('github:acme/dsh-hello')).toBe(true)
     expect(isInstallSpec('github:acme/dsh-hello#abc123')).toBe(true)
     expect(isPackageName('@acme/dsh-hello')).toBe(true)
+    expect(resolveInstallTarget('dsh-hello')).toBe('dsh-hello')
+    expect(resolveInstallTarget('github:acme/dsh-hello'))
+      .toBe('https://codeload.github.com/acme/dsh-hello/tar.gz/HEAD')
+    expect(resolveInstallTarget('github:acme/dsh-hello#abc123'))
+      .toBe('https://codeload.github.com/acme/dsh-hello/tar.gz/abc123')
   })
 
   it('rejects paths, file specs, surrounding whitespace, and shell metacharacters', () => {
@@ -43,6 +48,7 @@ describe('dsh plugin mutations', () => {
   it('installs through dsh plugin add and maps command failures', async () => {
     const run = vi.fn()
       .mockResolvedValueOnce({ stdout: 'ok', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'ok', stderr: '' })
       .mockRejectedValueOnce(Object.assign(new Error('pnpm failed'), { stdout: 'out', stderr: 'err' }))
       .mockRejectedValueOnce('boom')
     await expect(installPlugin({ cliPath: '/opt/dsh', profile: 'web', timeoutMs: 1000 }, 'dsh-hello', run))
@@ -50,18 +56,49 @@ describe('dsh plugin mutations', () => {
     expect(run.mock.calls[0]?.[0]).toBe('/opt/dsh')
     expect(run.mock.calls[0]?.[1]).toEqual(['plugin', '--profile', 'web', 'add', 'dsh-hello'])
 
+    await expect(installPlugin(
+      { cliPath: '/opt/dsh', profile: 'web', timeoutMs: 1000 },
+      'github:acme/dsh-hello#v1',
+      run,
+    )).resolves.toEqual({ ok: true, stdout: 'ok', stderr: '', restartRequired: true })
+    expect(run.mock.calls[1]?.[1]).toEqual([
+      'plugin',
+      '--profile',
+      'web',
+      'add',
+      'https://codeload.github.com/acme/dsh-hello/tar.gz/v1',
+    ])
+
     await expect(runPluginCommand(
       { cliPath: 'dsh', profile: 'web', timeoutMs: 1000 },
       'add',
       'dsh-hello',
       run,
-    )).resolves.toEqual(mutationFailure('command-failed', 'pnpm failed', 'out', 'err'))
+    )).resolves.toEqual(mutationFailure('command-failed', 'dsh plugin add failed', 'out', 'err'))
     await expect(runPluginCommand(
       { cliPath: 'dsh', profile: 'web', timeoutMs: 1000 },
       'add',
       'dsh-hello',
       run,
     )).resolves.toEqual(mutationFailure('command-failed', 'dsh plugin add failed'))
+  })
+
+  it('maps a missing pnpm to missing-pnpm without leaking the argv', async () => {
+    const run = vi.fn().mockRejectedValueOnce(Object.assign(
+      new Error('Command failed: /opt/dsh/app/node_modules/.bin/dsh plugin --profile web add dsh-hello'),
+      { stdout: '', stderr: 'dsh: pnpm not found on PATH — install pnpm to manage profile plugins\n' },
+    ))
+    await expect(runPluginCommand(
+      { cliPath: 'dsh', profile: 'web', timeoutMs: 1000 },
+      'add',
+      'dsh-hello',
+      run,
+    )).resolves.toEqual(mutationFailure(
+      'missing-pnpm',
+      'pnpm is not installed on PATH',
+      '',
+      'dsh: pnpm not found on PATH — install pnpm to manage profile plugins\n',
+    ))
   })
 
   it('maps abort to timeout', async () => {

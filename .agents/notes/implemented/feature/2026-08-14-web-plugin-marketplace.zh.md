@@ -14,15 +14,15 @@ Status: implemented
 
 Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace/catalog`、`pluginMarketplace/add` 和 `pluginMarketplace/uninstall`。该目录的呈现是 `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace` 拥有的侧栏一级入口和对话栏封面；见 [插件市场一级入口](2026-08-14-plugin-marketplace-primary-entry.md)。
 
-`catalog` 合并三个来源，并且不会因为 GitHub 失败而拒绝 RPC：
+`catalog` 合并三个来源，并且不会因为 GitHub 失败而拒绝 RPC。官方默认只保留 bundle 分组的原因，以及线上安装/SSE 失败如何映射，记录在 [插件市场线上目录缺陷](../bug-fix/2026-08-14-marketplace-live-catalog-bugs.md)。
 
-- **官方** — 配置仓库（默认 `deepseek-ai/deepseek-harness`）里 `packages/<group>/<pkg>/package.json` 的 GitHub git tree。这些行只供浏览（`installSpec: null`），因为它们已随 CLI 组合包交付。Config `officialSkipGroups` 默认跳过 `boot`、`examples`、`test-support`、`typert` 和 `util`。
-- **社区** — GitHub 仓库搜索 `topic:<githubTopic>`（默认 `dsh-plugin`）。每条命中可安装为 `github:owner/repo`。
+- **官方** — 配置仓库（默认 `deepseek-ai/deepseek-harness`）里 `packages/<group>/<pkg>/package.json` 的 GitHub git tree。这些行只供浏览（`installSpec: null`），因为它们已随 CLI 组合包交付。Config `officialGroups` 默认为 `['bundle']`，官方列表是 profile 层而不是整棵 monorepo。空的 `officialGroups` 会保留除 `officialSkipGroups` 以外的全部分组（默认跳过 `boot`、`examples`、`test-support`、`typert` 和 `util`）。
+- **社区** — GitHub 仓库搜索 `topic:<githubTopic>`（默认 `dsh-plugin`）。除 `officialRepository` 本身外，每条命中可安装为 `github:owner/repo`。`add` 如何拉取该规格记录在 [市场 GitHub 归档安装](../bug-fix/2026-08-15-marketplace-github-tarball-install.md)。
 - **已安装** — `$DSH_HOME/profiles/<profile>/package.json` 中的依赖。这些行可以卸载。
 
 `add` 与 `uninstall` 通过 `execFile` 启动 `dsh plugin --profile <name> add|remove`（不经过 shell）。规格只允许注册表名、可选版本/标签，以及 `github:owner/repo[#ref]`。相对路径、`file:`、`link:` 与 shell 元字符在启动前拒绝。成功的变更返回 `restartRequired: true`；正在运行的 Loader 不会热加载新装的 bundle。
 
-所有随部署变化的选项都是 `Config` 字段，包括 `githubToken`（空字符串表示未认证请求）、`catalogCacheMs`、`installTimeoutMs` 和 `cliPath`。测试在 Gateway 构造函数上注入 `fetcher` 与 `run`；生产使用 `fetch` 和 `runNativeCommand`。
+所有随部署变化的选项都是 `Config` 字段，包括 `githubToken`（空字符串表示未认证请求）、`officialGroups`、`catalogCacheMs`、`installTimeoutMs` 和 `cliPath`。测试在 Gateway 构造函数上注入 `fetcher` 与 `run`；生产使用 `fetch` 和 `runNativeCommand`。主机缺少 `pnpm` 时映射为 `missing-pnpm`；其他 `dsh plugin` 失败使用 `dsh plugin ${verb} failed`，而不是被启动的 argv。
 
 三条 Remote 以 `pluginMarketplace/catalog|add|uninstall` 加入 `PRIVILEGED_METHODS`（Typert 端点使用 `namespace/method`；Client namespace Service 保留 `install` 与 `remove`），因此局域网调用者不能列出 profile 依赖，也不能以 Host 进程用户身份安装包。把 `Host` 改写到回环的 nginx 仍可到达它们。
 
@@ -48,4 +48,4 @@ Host Remote `@deepseek-ai/dsh-host-plugin-marketplace` 发布 `pluginMarketplace
 
 ## 测试
 
-包测试覆盖规格拒绝、目录合并与 GitHub 失败记录、`dsh plugin` 启动参数、缓存复用与失效、市场封面的加载/失败/重试/过滤/安装/卸载路径，以及特权方法的回环钉扎。Web e2e 拦截 `pluginMarketplace/catalog` 并快照 `[data-marketplace-chrome]`，避免 GitHub 卡片列表把 golden 打成不稳定。覆盖缺口：超过第一页 100 条 topic 命中的 GitHub 分页，以及针对真实注册表的端到端 `dsh plugin add`（仍作为手工部署检查）。
+包测试覆盖规格拒绝、目录合并与 GitHub 失败记录、`officialGroups` 过滤、`dsh plugin` 启动参数、`missing-pnpm` / 净化后的 `command-failed` 映射、缓存复用与失效、市场封面的加载/失败/重试/过滤/安装/卸载/关闭提示路径，以及特权方法的回环钉扎。Web e2e 拦截 `pluginMarketplace/catalog` 并快照 `[data-marketplace-chrome]`，避免 GitHub 卡片列表把 golden 打成不稳定。覆盖缺口：超过第一页 100 条 topic 命中的 GitHub 分页，以及针对真实注册表的端到端 `dsh plugin add`（仍作为手工部署检查）。

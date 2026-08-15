@@ -87,7 +87,7 @@ export interface MarketplaceMutationSuccess {
 /** Failed `dsh plugin` mutation or a rejected spec. */
 export interface MarketplaceMutationFailure {
   readonly ok: false
-  readonly code: 'invalid-spec' | 'not-installed' | 'command-failed' | 'timeout'
+  readonly code: 'invalid-spec' | 'not-installed' | 'command-failed' | 'missing-pnpm' | 'timeout'
   readonly message: string
   readonly stdout: string
   readonly stderr: string

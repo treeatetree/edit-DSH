@@ -26,6 +26,8 @@ describe('plugin marketplace catalog cache', () => {
     }))).toBeUndefined()
     expect(parseCachedCatalog('[]')).toBeUndefined()
     expect(parseCachedCatalog(JSON.stringify({ version: 0, expiresAt: 1, snapshot }))).toBeUndefined()
+    expect(parseCachedCatalog(JSON.stringify({ version: 1, expiresAt: 1, snapshot }))).toBeUndefined()
+    expect(parseCachedCatalog(JSON.stringify({ version: 2, expiresAt: 1, snapshot }))).toBeUndefined()
     expect(parseCachedCatalog(JSON.stringify({
       version: CATALOG_CACHE_VERSION,
       expiresAt: Number.NaN,

@@ -4,7 +4,7 @@
 
 侧栏一级入口的 **插件市场**。浏览器插件在设置上方注册一个本地化的 `sidebar.footer.action` 触发器（`id: plugin-marketplace`，`order: -10`），以及铺满对话栏的 `center.cover` 面板。插件激活期间通过 [`api-remotes`](../../api/remotes/README.md) 预取 `ctx.remote.pluginMarketplace.catalog()`，并保留最近一次快照，因此再次打开封面时不必等待 GitHub。
 
-封面列出 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 中的官方包（只浏览），以及 GitHub 上带 `dsh-plugin` topic 的仓库（安装 spec 为 `github:owner/repo`）。卡片展示 GitHub 所有者头像、在行能对应到仓库时的 Open Graph 图、描述、星标和语言。安装和卸载走 `pluginMarketplace.add` / `pluginMarketplace.uninstall`，主机侧执行 `dsh plugin --profile <name>`。文案以中文为准。加载、空结果、无匹配、来源失败与通用失败状态只属于已挂载的封面。两处注册都使用 `ctx.slots.inject()`，因此能跟随 slot 的延迟声明、重新声明、本地化变化与 teardown。
+封面列出 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 中的官方 profile 组合包（只浏览），以及 GitHub 上带 `dsh-plugin` topic 的仓库（安装 spec 为 `github:owner/repo`）。卡片展示 GitHub 所有者头像、描述、星标和语言。行能对应到仓库时，Open Graph 图画在展开后的详情里。不能安装的官方行带“仅浏览”标签。安装和卸载走 `pluginMarketplace.add` / `pluginMarketplace.uninstall`，主机侧执行 `dsh plugin --profile <name>`。变更进行中封面保持目录可见，显示已用时间，并说明不会流式显示 pnpm 输出。主机缺少 `pnpm` 时用本地诊断文案；其他变更失败显示 Host 消息。提示条可以关闭。文案以中文为准。加载、空结果、无匹配、来源失败与通用失败状态只属于已挂载的封面。两处注册都使用 `ctx.slots.inject()`，因此能跟随 slot 的延迟声明、重新声明、本地化变化与 teardown。
 
 成功的变更会提示需要重启 Web 进程后才会加载新的 profile 层。Escape 与封面标题栏会关闭面板但保持挂载，因此搜索文本和最近一次目录在再次打开时仍然在。
 

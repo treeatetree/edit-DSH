@@ -14,9 +14,9 @@ The marketplace lived as a third tab inside Settings → Plugins. Discovering or
 
 `ui-layout` declares `center.cover` as a root-scoped list slot stacked above the `conversation` occupant inside the center track. A contribution must not replace `conversation`; the cover is additive. `shell.overlay` remains the frame-wide float for toasts and the Cordis inventory.
 
-Host `catalog` rows now carry `imageUrl`, `coverUrl`, `owner`, `language`, `updatedAt`, `forks`, and `topics`. Community rows map those fields from the GitHub search payload plus `https://opengraph.githubassets.com/1/{owner}/{repo}` (no extra API). Official rows copy repository-level stars, language, and the owner avatar from one `GET /repos/{owner}/{repo}` beside the existing git-tree read; they do not reuse the monorepo Open Graph image as a per-package cover. Tree, repo, and topic search run concurrently.
+Host `catalog` rows now carry `imageUrl`, `coverUrl`, `owner`, `language`, `updatedAt`, `forks`, and `topics`. Community rows map those fields from the GitHub search payload plus `https://opengraph.githubassets.com/1/{owner}/{repo}` (no extra API). Official rows copy repository-level stars, language, and the owner avatar from one `GET /repos/{owner}/{repo}` beside the existing git-tree read; they do not reuse the monorepo Open Graph image as a per-package cover. The cover panel renders Open Graph images in expanded details, not as a collapsed-card header. Tree, repo, and topic search run concurrently.
 
-`Config.persistCatalog` (default true) writes `$DSH_HOME/plugin-marketplace-catalog.json` with envelope version `1`. `Config.prefetchCatalog` (default true) starts `catalog()` when the Host plugin loads. Tests inject `persist` and set both flags false. A successful add/uninstall clears memory and disk. The browser plugin also prefetches through the Remote and paints `lastCatalog` immediately.
+`Config.persistCatalog` (default true) writes `$DSH_HOME/plugin-marketplace-catalog.json` with envelope version `3`. `Config.prefetchCatalog` (default true) starts `catalog()` when the Host plugin loads. Tests inject `persist` and set both flags false. A successful add/uninstall clears memory and disk. The browser plugin also prefetches through the Remote and paints `lastCatalog` immediately.
 
 Host RPC names, spec refusal, privileged-method loopback pin, and `restartRequired` stay as recorded in [web plugin marketplace](2026-08-14-web-plugin-marketplace.md).
 
@@ -34,7 +34,7 @@ Host RPC names, spec refusal, privileged-method loopback pin, and `restartRequir
 
 ## Consequences
 
-The sidebar shows **插件市场** above Settings. Opening it covers the conversation column; Settings → Plugins no longer has a marketplace tab. Catalog cards show avatars and, for community/installed GitHub specs, Open Graph images. After a Host restart the disk cache serves until `catalogCacheMs` elapses.
+The sidebar shows **插件市场** above Settings. Opening it covers the conversation column; Settings → Plugins no longer has a marketplace tab. Catalog cards show avatars; community/installed GitHub specs show Open Graph images after expand. After a Host restart the disk cache serves until `catalogCacheMs` elapses.
 
 Unauthenticated GitHub quota still applies; the extra `/repos` read is one request per official refresh, not one per package. Overlay deploys that ship the marketplace client must also overlay `ui-layout` and `ui-sidebar` so `center.cover` exists and the trigger stacks above Settings.
 
